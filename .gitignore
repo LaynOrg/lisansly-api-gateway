@@ -1,0 +1,12 @@
+.env
+.idea/
+.fleet/
+.vscode/
+out/
+tmp/
+node_modules/
+api-gateway
+coverage.txt
+coverage.out
+results.sarif
+results.html

@@ -1,0 +1,23 @@
+service: APIGateway
+
+provider:
+  name: aws
+  runtime: go1.x
+  region: us-west-1
+  apiGateway:
+    disableDefaultEndpoint: true
+
+package:
+  patterns:
+    - "!./**/**"
+    - "api-gateway"
+
+functions:
+  UserAPI:
+    handler: api-gateway
+    environment: ${file(env.${opt:stage, self:provider.stage}.json)}
+    events:
+      - http:
+          method: GET
+          path: /health
+          cors: true

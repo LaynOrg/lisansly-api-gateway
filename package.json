@@ -1,0 +1,11 @@
+{
+  "name": "api-gateway",
+  "version": "1.0.0",
+  "main": "main.go",
+  "repository": "git@github.com:Lisansly/api-gateway.git",
+  "author": "Lisansly",
+  "license": "MIT",
+  "devDependencies": {
+    "serverless": "^3.31.0"
+  }
+}

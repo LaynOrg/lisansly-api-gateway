@@ -1,0 +1,126 @@
+name: CI/CD
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+  APP_NAME: ${{ github.event.repository.name }}
+
+jobs:
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: ./.github/actions/go-cache
+
+      - name: Linting
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+
+  build:
+    needs:
+      - lint
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: ./.github/actions/go-cache
+
+      - name: Build
+        shell: bash
+        run: go build -o $APP_NAME .
+
+      - name: Upload executable file as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.APP_NAME }}
+          path: ${{ env.APP_NAME }}
+          if-no-files-found: error
+
+  unit-test:
+    needs:
+      - build
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: ./.github/actions/go-cache
+
+      - name: Run tests
+        run: go test -tags=unit -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Upload coverage output as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: code-coverage
+          path: coverage.out
+
+  coverage:
+    needs:
+      - unit-test
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download coverage output
+        uses: actions/download-artifact@v3
+        with:
+          name: code-coverage
+
+      - name: Code analysis
+        uses: sonarsource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
+
+      - name: Quality Gate check
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
+
+  security-analysis:
+    needs:
+      - coverage
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run security analysis with gosec
+        uses: securego/gosec@master
+        with:
+          args: ./...
+
+  deploy-to-dev:
+    needs:
+      - security-analysis
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.APP_NAME }}
+
+      - run: |
+          touch env.dev.json
+          echo '{
+            "IS_AT_REMOTE": true
+          }' > env.dev.json
+
+      - uses: serverless/github-action@v3.2
+        with:
+          args: deploy --stage dev
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
