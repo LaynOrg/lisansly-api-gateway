@@ -17,7 +17,7 @@ import (
 )
 
 type Handler interface {
-	RegisterRoutes(ctx *fiber.App)
+	RegisterRoutes(app *fiber.App)
 }
 
 type Server interface {
@@ -80,8 +80,13 @@ func (server *server) GetFiberInstance() *fiber.App {
 }
 
 func (server *server) RegisterRoutes() {
-	for _, handler := range server.handlers {
-		handler.RegisterRoutes(server.fiber)
+	handlersLength := len(server.handlers)
+	if handlersLength > 0 {
+		for _, handler := range server.handlers {
+			handler.RegisterRoutes(server.fiber)
+		}
+	} else {
+		panic("no handlers is registered")
 	}
 }
 
