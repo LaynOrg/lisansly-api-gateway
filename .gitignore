@@ -4,6 +4,7 @@
 .vscode/
 out/
 tmp/
+pacts/
 node_modules/
 api-gateway
 coverage.txt

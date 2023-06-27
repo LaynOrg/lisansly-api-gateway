@@ -21,3 +21,19 @@ functions:
           method: GET
           path: /health
           cors: true
+      - http:
+          method: POST
+          path: /register
+          cors: true
+      - http:
+          method: POST
+          path: /login
+          cors: true
+      - http:
+          method: PATCH
+          path: /user
+          cors: true
+      - http:
+          method: GET
+          path: /user/refreshToken/{refreshToken}
+          cors: true

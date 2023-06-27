@@ -1,7 +1,10 @@
 run:
   concurrency: 4
   timeout: 3m
-  go: "1.20"
+  go: 1.20
+  skip-files:
+    - _test\.go
+    - _mock\.go
 
 linters:
   disable-all: true
@@ -20,9 +23,9 @@ linters:
     - varnamelen
     - funlen
 
+linters-settings:
+  funlen:
+    lines: 100
+
 severity:
   default-severity: error
-
-issues:
-  exclude:
-    - _test\.go

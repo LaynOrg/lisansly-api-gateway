@@ -1,16 +1,12 @@
 package config
 
-import "github.com/pkg/errors"
-
-var (
-	EnvironmentVariablesNotDefined = errors.New("environment variables is not defined")
-)
-
 // #nosec
 const (
-	IsAtRemote = "IS_AT_REMOTE"
+	EnvironmentVariableNotDefined = "%s variable is not defined"
 
-	ServerPort      = "SERVER_PORT"
-	PactBrokerURL   = "PACT_BROKER_URL"
-	PactBrokerToken = "PACT_BROKER_TOKEN"
+	IsAtRemote    = "IS_AT_REMOTE"
+	ServerPort    = "SERVER_PORT"
+	UserApiUrl    = "USER_API_URL"
+	JwtPrivateKey = "JWT_PRIVATE_KEY"
+	JwtPublicKey  = "JWT_PUBLIC_KEY"
 )
