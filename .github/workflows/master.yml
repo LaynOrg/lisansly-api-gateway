@@ -80,7 +80,9 @@ jobs:
       - uses: ./.github/actions/go-cache
 
       - name: Run contract tests
-        run: make contract-test
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/pact-foundation/pact-ruby-standalone/master/install.sh | bash -x
+          make contract-test
 
       - name: Publish contracts
         run: |
