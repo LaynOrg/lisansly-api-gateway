@@ -51,6 +51,7 @@ func TestRepository_GetUserById(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
+		time.Sleep(5 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -99,6 +100,7 @@ func TestRepository_GetUserById(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
+		time.Sleep(5 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -123,6 +125,7 @@ func TestRepository_GetUserById(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
+		time.Sleep(5 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -147,6 +150,7 @@ func TestRepository_GetUserById(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
+		time.Sleep(5 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -177,6 +181,7 @@ func TestRepository_Register(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
+		time.Sleep(5 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -208,6 +213,7 @@ func TestRepository_Register(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
+		time.Sleep(5 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: "protocol://localhost:8080",
@@ -254,6 +260,7 @@ func TestRepository_Register(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
+		time.Sleep(5 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -283,6 +290,7 @@ func TestRepository_Register(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
+		time.Sleep(5 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -317,6 +325,7 @@ func TestRepository_Login(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
+		time.Sleep(5 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -347,6 +356,7 @@ func TestRepository_Login(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
+		time.Sleep(5 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: "protocol://localhost:8080",
@@ -392,6 +402,7 @@ func TestRepository_Login(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
+		time.Sleep(5 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -420,6 +431,7 @@ func TestRepository_Login(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
+		time.Sleep(5 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -452,6 +464,7 @@ func TestRepository_GetAccessTokenByRefreshToken(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
+		time.Sleep(5 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -475,6 +488,7 @@ func TestRepository_GetAccessTokenByRefreshToken(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
+		time.Sleep(5 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: "protocol://localhost:8080",
@@ -514,6 +528,7 @@ func TestRepository_GetAccessTokenByRefreshToken(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
+		time.Sleep(5 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -529,7 +544,7 @@ func TestRepository_GetAccessTokenByRefreshToken(t *testing.T) {
 }
 
 func getFreePort() string {
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:0")
 	if err != nil {
 		panic(err)
 	}
