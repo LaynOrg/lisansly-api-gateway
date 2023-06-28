@@ -91,7 +91,7 @@ jobs:
 
   security-analysis:
     needs:
-      - unit-test
+      - contract-test
 
     runs-on: ubuntu-latest
     steps:
