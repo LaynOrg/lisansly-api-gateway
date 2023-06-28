@@ -69,26 +69,25 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
 
-#  contract-test:
-#    needs:
-#      - unit-test
-#
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v3
-#
-#      - uses: ./.github/actions/go-cache
-#
-#      - name: Run contract tests
-#        run: go test --tags=contract ./...
-#
-#      - name: Publish pacts
-#        run: |
-#          ${{ env.PACT_CLI }} publish pacts/ --verbose \
-#          --broker-base-url=${{ secrets.PACT_BROKER_BASE_URL }} \
-#          --broker-token=${{ secrets.PACT_BROKER_TOKEN }} \
-#          --consumer-app-version=${{}} \
-#          --tag=dev
+  contract-test:
+    needs:
+      - unit-test
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: ./.github/actions/go-cache
+
+      - name: Run contract tests
+        run: make contract-test
+
+      - name: Publish contracts
+        run: |
+          ${{ env.PACT_CLI }} publish pacts --verbose \
+            --broker-base-url="${{ secrets.PACT_BROKER_BASE_URL }}" \
+            --broker-token="${{ secrets.PACT_BROKER_TOKEN }}" \
+            --consumer-app-version="${{ github.sha }}"
 
   security-analysis:
     needs:
@@ -103,21 +102,29 @@ jobs:
         with:
           args: ./...
 
-#  can-i-deploy-to-dev:
-#    needs:
-#      - security-analysis
-#
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v3
-#
-#      - run: docker pull pactfoundation/pact-cli:latest
-#
-#      - run: make ca-i-deploy-to-dev
-
-  deploy-to-dev:
+  can-i-deploy-to-dev:
     needs:
       - security-analysis
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - run: docker pull pactfoundation/pact-cli:latest
+
+      - name: Can I Deploy?
+        run: |
+          ${{ env.PACT_CLI }} broker can-i-deploy --verbose \
+            --pacticipant APIGateway \
+            --version ${{ github.sha }} \
+            --to-environment dev \
+            --retry-while-unknown 30 \
+            --retry-interval 10
+
+  deploy-to-dev:
+    environment: dev
+    needs:
+      - can-i-deploy-to-dev
 
     runs-on: ubuntu-latest
     steps:
@@ -139,6 +146,54 @@ jobs:
       - uses: serverless/github-action@v3.2
         with:
           args: deploy --stage dev
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  can-i-deploy-to-prod:
+    needs:
+      - deploy-to-dev
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - run: docker pull pactfoundation/pact-cli:latest
+
+      - name: Can I Deploy To Production?
+        run: |
+          ${{ env.PACT_CLI }} broker can-i-deploy --verbose \
+            --pacticipant APIGateway \
+            --version ${{ github.sha }} \
+            --to-environment production \
+            --retry-while-unknown 30 \
+            --retry-interval 10
+
+  deploy-to-prod:
+    environment: production
+    needs:
+      - can-i-deploy-prod
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.APP_NAME }}
+
+      - run: |
+          touch env.dev.json
+          echo '{
+            "IS_AT_REMOTE": true,
+            "USER_API_URL": "${{ vars.USER_API_URL }}",
+            "JWT_PRIVATE_KEY": "${{ secret.JWT_PRIVATE_KEY }}",
+            "JWT_PUBLIC_KEY": "${{ secret.JWT_PUBLIC_KEY }}"
+          }' > env.dev.json
+
+      - uses: serverless/github-action@v3.2
+        with:
+          args: deploy --stage production
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
