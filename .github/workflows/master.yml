@@ -139,8 +139,8 @@ jobs:
           echo '{
             "IS_AT_REMOTE": true,
             "USER_API_URL": "${{ vars.USER_API_URL }}",
-            "JWT_PRIVATE_KEY": "${{ secret.JWT_PRIVATE_KEY }}",
-            "JWT_PUBLIC_KEY": "${{ secret.JWT_PUBLIC_KEY }}"
+            "JWT_PRIVATE_KEY": "${{ secrets.JWT_PRIVATE_KEY }}",
+            "JWT_PUBLIC_KEY": "${{ secrets.JWT_PUBLIC_KEY }}"
           }' > env.dev.json
 
       - uses: serverless/github-action@v3.2
@@ -172,7 +172,7 @@ jobs:
   deploy-to-prod:
     environment: production
     needs:
-      - can-i-deploy-prod
+      - can-i-deploy-to-prod
 
     runs-on: ubuntu-latest
     steps:
@@ -187,8 +187,8 @@ jobs:
           echo '{
             "IS_AT_REMOTE": true,
             "USER_API_URL": "${{ vars.USER_API_URL }}",
-            "JWT_PRIVATE_KEY": "${{ secret.JWT_PRIVATE_KEY }}",
-            "JWT_PUBLIC_KEY": "${{ secret.JWT_PUBLIC_KEY }}"
+            "JWT_PRIVATE_KEY": "${{ secrets.JWT_PRIVATE_KEY }}",
+            "JWT_PUBLIC_KEY": "${{ secrets.JWT_PUBLIC_KEY }}"
           }' > env.dev.json
 
       - uses: serverless/github-action@v3.2
