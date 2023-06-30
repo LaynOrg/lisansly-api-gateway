@@ -5,6 +5,7 @@ package user
 import (
 	"fmt"
 	"net"
+	"net/url"
 	"strconv"
 	"testing"
 	"time"
@@ -22,8 +23,7 @@ const (
 	TestUserName     = "lynicis"
 	TestUserEmail    = "test@test.com"
 	TestUserPassword = "Asdf12345_"
-
-	TestToken = "abcd.abcd.abcd"
+	TestToken        = "abcd.abcd.abcd"
 )
 
 func TestNewRepository(t *testing.T) {
@@ -33,7 +33,7 @@ func TestNewRepository(t *testing.T) {
 
 func TestRepository_GetUserById(t *testing.T) {
 	TestUserDocument := &Document{
-		Id:        "123",
+		Id:        TestUserId,
 		Name:      TestUserName,
 		Email:     TestUserEmail,
 		Password:  TestUserPassword,
@@ -56,7 +56,10 @@ func TestRepository_GetUserById(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   fmt.Sprintf("localhost:%s", port),
+			},
 		})
 		user, err := userRepository.GetUserById(TestUserId)
 
@@ -66,7 +69,10 @@ func TestRepository_GetUserById(t *testing.T) {
 
 	t.Run("request parse error", func(t *testing.T) {
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: "protocol://localhost:8080",
+			UserApiUrl: &url.URL{
+				Scheme: "protocol",
+				Host:   "localhost:8080",
+			},
 		})
 		user, err := userRepository.GetUserById(TestUserId)
 		cerr := err.(*cerror.CustomError)
@@ -79,7 +85,10 @@ func TestRepository_GetUserById(t *testing.T) {
 
 	t.Run("make request error", func(t *testing.T) {
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: "ambiguous-url",
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   "localhost",
+			},
 		})
 		user, err := userRepository.GetUserById(TestUserId)
 		cerr := err.(*cerror.CustomError)
@@ -105,7 +114,10 @@ func TestRepository_GetUserById(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   fmt.Sprintf("localhost:%s", port),
+			},
 		})
 		user, err := userRepository.GetUserById(TestUserId)
 
@@ -130,7 +142,10 @@ func TestRepository_GetUserById(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   fmt.Sprintf("localhost:%s", port),
+			},
 		})
 		user, err := userRepository.GetUserById(TestUserId)
 
@@ -155,7 +170,10 @@ func TestRepository_GetUserById(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   fmt.Sprintf("localhost:%s", port),
+			},
 		})
 		user, err := userRepository.GetUserById(TestUserId)
 		cerr := err.(*cerror.CustomError)
@@ -186,7 +204,10 @@ func TestRepository_Register(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   fmt.Sprintf("localhost:%s", port),
+			},
 		})
 		tokens, err := userRepository.Register(&RegisterPayload{
 			Name:     TestUserName,
@@ -203,7 +224,10 @@ func TestRepository_Register(t *testing.T) {
 
 	t.Run("request parse error", func(t *testing.T) {
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: "protocol://localhost:8080",
+			UserApiUrl: &url.URL{
+				Scheme: "protocol",
+				Host:   "localhost",
+			},
 		})
 		tokens, err := userRepository.Register(&RegisterPayload{
 			Name:     TestUserName,
@@ -220,7 +244,10 @@ func TestRepository_Register(t *testing.T) {
 
 	t.Run("make request error", func(t *testing.T) {
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: "http://localhost",
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   "localhost",
+			},
 		})
 		tokens, err := userRepository.Register(&RegisterPayload{
 			Name:     TestUserName,
@@ -249,7 +276,10 @@ func TestRepository_Register(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   fmt.Sprintf("localhost:%s", port),
+			},
 		})
 		tokens, err := userRepository.Register(&RegisterPayload{
 			Name:     TestUserName,
@@ -279,7 +309,10 @@ func TestRepository_Register(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   fmt.Sprintf("localhost:%s", port),
+			},
 		})
 		tokens, err := userRepository.Register(&RegisterPayload{
 			Name:     TestUserName,
@@ -314,7 +347,10 @@ func TestRepository_Login(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   fmt.Sprintf("localhost:%s", port),
+			},
 		})
 		tokens, err := userRepository.Login(&LoginPayload{
 			Email:    TestUserEmail,
@@ -330,7 +366,10 @@ func TestRepository_Login(t *testing.T) {
 
 	t.Run("request parse error", func(t *testing.T) {
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: "protocol://localhost:8080",
+			UserApiUrl: &url.URL{
+				Scheme: "protocol",
+				Host:   "localhost",
+			},
 		})
 		tokens, err := userRepository.Login(&LoginPayload{
 			Email:    TestUserEmail,
@@ -346,7 +385,10 @@ func TestRepository_Login(t *testing.T) {
 
 	t.Run("make request error", func(t *testing.T) {
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: "http://localhost",
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   "localhost",
+			},
 		})
 		tokens, err := userRepository.Login(&LoginPayload{
 			Email:    TestUserEmail,
@@ -375,7 +417,10 @@ func TestRepository_Login(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   fmt.Sprintf("localhost:%s", port),
+			},
 		})
 		tokens, err := userRepository.Login(&LoginPayload{
 			Email:    TestUserEmail,
@@ -404,7 +449,10 @@ func TestRepository_Login(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   fmt.Sprintf("localhost:%s", port),
+			},
 		})
 		tokens, err := userRepository.Login(&LoginPayload{
 			Email:    TestUserEmail,
@@ -437,7 +485,10 @@ func TestRepository_GetAccessTokenByRefreshToken(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   fmt.Sprintf("localhost:%s", port),
+			},
 		})
 		accessToken, err := userRepository.GetAccessTokenByRefreshToken(TestUserId, TestToken)
 
@@ -447,7 +498,10 @@ func TestRepository_GetAccessTokenByRefreshToken(t *testing.T) {
 
 	t.Run("request parse error", func(t *testing.T) {
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: "protocol://localhost",
+			UserApiUrl: &url.URL{
+				Scheme: "protocol",
+				Host:   "localhost",
+			},
 		})
 		accessToken, err := userRepository.GetAccessTokenByRefreshToken(TestUserId, TestToken)
 		cerr := err.(*cerror.CustomError)
@@ -460,7 +514,10 @@ func TestRepository_GetAccessTokenByRefreshToken(t *testing.T) {
 
 	t.Run("make request error", func(t *testing.T) {
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: "http://localhost",
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   "localhost",
+			},
 		})
 		accessToken, err := userRepository.GetAccessTokenByRefreshToken(TestUserId, TestToken)
 		cerr := err.(*cerror.CustomError)
@@ -486,7 +543,10 @@ func TestRepository_GetAccessTokenByRefreshToken(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   fmt.Sprintf("localhost:%s", port),
+			},
 		})
 		accessToken, err := userRepository.GetAccessTokenByRefreshToken(TestUserId, TestToken)
 		cerr := err.(*cerror.CustomError)
@@ -512,7 +572,10 @@ func TestRepository_GetAccessTokenByRefreshToken(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   fmt.Sprintf("localhost:%s", port),
+			},
 		})
 		accessToken, err := userRepository.GetAccessTokenByRefreshToken(TestUserId, TestToken)
 		cerr := err.(*cerror.CustomError)
@@ -543,7 +606,10 @@ func TestRepository_UpdateUserById(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   fmt.Sprintf("localhost:%s", port),
+			},
 		})
 		tokens, err := userRepository.UpdateUserById(TestUserId, &UpdateUserPayload{
 			Name:     TestUserName,
@@ -560,7 +626,10 @@ func TestRepository_UpdateUserById(t *testing.T) {
 
 	t.Run("request parse error", func(t *testing.T) {
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: "protocol://localhost",
+			UserApiUrl: &url.URL{
+				Scheme: "protocol",
+				Host:   "localhost",
+			},
 		})
 		tokens, err := userRepository.UpdateUserById(TestUserId, &UpdateUserPayload{
 			Name:     TestUserName,
@@ -577,7 +646,10 @@ func TestRepository_UpdateUserById(t *testing.T) {
 
 	t.Run("make request error", func(t *testing.T) {
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: "http://localhost",
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   "localhost",
+			},
 		})
 		tokens, err := userRepository.UpdateUserById(TestUserId, &UpdateUserPayload{
 			Name:     TestUserName,
@@ -589,6 +661,38 @@ func TestRepository_UpdateUserById(t *testing.T) {
 		assert.Error(t, err)
 		assert.Equal(t, "error occurred while make request", cerr.LogMessage)
 		assert.Equal(t, fiber.StatusInternalServerError, cerr.HttpStatusCode)
+		assert.Empty(t, tokens)
+	})
+
+	t.Run("email already exists", func(t *testing.T) {
+		port := getFreePort()
+		srv := server.NewServer(&config.Config{
+			ServerPort: port,
+		}, nil)
+		app := srv.GetFiberInstance()
+		app.Patch("/user/:userId", func(ctx *fiber.Ctx) error {
+			return ctx.SendStatus(fiber.StatusConflict)
+		})
+
+		go srv.Start()
+		defer srv.Shutdown()
+		time.Sleep(1 * time.Second)
+
+		userRepository := NewRepository(&config.Config{
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   fmt.Sprintf("localhost:%s", port),
+			},
+		})
+		tokens, err := userRepository.UpdateUserById(TestUserId, &UpdateUserPayload{
+			Name:     TestUserName,
+			Email:    TestUserEmail,
+			Password: TestUserPassword,
+		})
+
+		assert.Error(t, err)
+		assert.Equal(t, "user with this email already exists", err.(*cerror.CustomError).LogMessage)
+		assert.Equal(t, fiber.StatusConflict, err.(*cerror.CustomError).HttpStatusCode)
 		assert.Empty(t, tokens)
 	})
 
@@ -607,7 +711,10 @@ func TestRepository_UpdateUserById(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   fmt.Sprintf("localhost:%s", port),
+			},
 		})
 		tokens, err := userRepository.UpdateUserById(TestUserId, &UpdateUserPayload{
 			Name:     TestUserName,
@@ -636,7 +743,10 @@ func TestRepository_UpdateUserById(t *testing.T) {
 		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+			UserApiUrl: &url.URL{
+				Scheme: "http",
+				Host:   fmt.Sprintf("localhost:%s", port),
+			},
 		})
 		tokens, err := userRepository.UpdateUserById(TestUserId, &UpdateUserPayload{
 			Name:     TestUserName,

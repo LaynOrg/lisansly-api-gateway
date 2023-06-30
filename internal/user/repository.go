@@ -1,7 +1,7 @@
 package user
 
 import (
-	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -40,10 +40,16 @@ func (r *repository) GetUserById(userId string) (*Document, error) {
 	req := agent.Request()
 	req.Header.SetMethod(fiber.MethodGet)
 	req.Header.Set(fiber.HeaderAccept, fiber.MIMEApplicationJSON)
-	req.Header.SetUserAgent("API-Gateway")
+	req.Header.SetUserAgent(RequestUserAgent)
 
-	url := fmt.Sprintf("%s/user/%s", r.config.UserApiUrl, userId)
-	req.SetRequestURI(url)
+	pathParam, _ := url.JoinPath("user", userId)
+	urlBuilder := &url.URL{
+		Scheme: r.config.UserApiUrl.Scheme,
+		Host:   r.config.UserApiUrl.Host,
+		Path:   pathParam,
+	}
+	requestUrl := urlBuilder.String()
+	req.SetRequestURI(requestUrl)
 
 	err = agent.Parse()
 	if err != nil {
@@ -107,21 +113,19 @@ func (r *repository) Register(user *RegisterPayload) (*jwt_generator.Tokens, err
 	req.Header.SetMethod(fiber.MethodPost)
 	req.Header.SetContentType(fiber.MIMEApplicationJSON)
 	req.Header.Set(fiber.HeaderAccept, fiber.MIMEApplicationJSON)
-	req.Header.SetUserAgent("API-Gateway")
+	req.Header.SetUserAgent(RequestUserAgent)
 
 	var requestBody []byte
-	requestBody, err = json.Marshal(user)
-	if err != nil {
-		return nil, &cerror.CustomError{
-			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while marshal body",
-			LogSeverity:    zapcore.ErrorLevel,
-		}
-	}
+	requestBody, _ = json.Marshal(user)
 	req.SetBody(requestBody)
 
-	url := fmt.Sprintf("%s/user", r.config.UserApiUrl)
-	req.SetRequestURI(url)
+	urlBuilder := &url.URL{
+		Scheme: r.config.UserApiUrl.Scheme,
+		Host:   r.config.UserApiUrl.Host,
+		Path:   "user",
+	}
+	requestUrl := urlBuilder.String()
+	req.SetRequestURI(requestUrl)
 
 	err = agent.Parse()
 	if err != nil {
@@ -174,24 +178,18 @@ func (r *repository) Login(user *LoginPayload) (*jwt_generator.Tokens, error) {
 	req.Header.SetMethod(fiber.MethodPost)
 	req.Header.Set(fiber.HeaderAccept, fiber.MIMEApplicationJSON)
 	req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
-	req.Header.SetUserAgent("API-Gateway")
+	req.Header.SetUserAgent(RequestUserAgent)
 
-	requestUrl := fmt.Sprintf(
-		"%s/login",
-		r.config.UserApiUrl,
-	)
+	urlBuilder := &url.URL{
+		Scheme: r.config.UserApiUrl.Scheme,
+		Host:   r.config.UserApiUrl.Host,
+		Path:   "login",
+	}
+	requestUrl := urlBuilder.String()
 	req.SetRequestURI(requestUrl)
 
 	var requestBody []byte
-	requestBody, err = json.Marshal(user)
-	if err != nil {
-		return nil, &cerror.CustomError{
-			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while marshal body",
-			LogSeverity:    zapcore.ErrorLevel,
-		}
-	}
-
+	requestBody, _ = json.Marshal(user)
 	req.SetBody(requestBody)
 
 	err = agent.Parse()
@@ -241,15 +239,16 @@ func (r *repository) GetAccessTokenByRefreshToken(userId, refreshToken string) (
 	req := agent.Request()
 	req.Header.SetMethod(fiber.MethodGet)
 	req.Header.Set(fiber.HeaderAccept, fiber.MIMEApplicationJSON)
-	req.Header.SetUserAgent("API-Gateway")
+	req.Header.SetUserAgent(RequestUserAgent)
 
-	url := fmt.Sprintf(
-		"%s/user/%s/refreshToken/%s",
-		r.config.UserApiUrl,
-		userId,
-		refreshToken,
-	)
-	req.SetRequestURI(url)
+	pathParams, _ := url.JoinPath("user", userId, "refreshToken", refreshToken)
+	urlBuilder := &url.URL{
+		Scheme: r.config.UserApiUrl.Scheme,
+		Host:   r.config.UserApiUrl.Host,
+		Path:   pathParams,
+	}
+	requestUrl := urlBuilder.String()
+	req.SetRequestURI(requestUrl)
 
 	err = agent.Parse()
 	if err != nil {
@@ -302,22 +301,20 @@ func (r *repository) UpdateUserById(userId string, user *UpdateUserPayload) (*jw
 	req.Header.SetMethod(fiber.MethodPatch)
 	req.Header.SetContentType(fiber.MIMEApplicationJSON)
 	req.Header.Set(fiber.HeaderAccept, fiber.MIMEApplicationJSON)
-	req.Header.SetUserAgent("API-Gateway")
+	req.Header.SetUserAgent(RequestUserAgent)
 
 	var requestBody []byte
-	requestBody, err = json.Marshal(user)
-	if err != nil {
-		return nil, &cerror.CustomError{
-			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while marshal body",
-			LogSeverity:    zapcore.ErrorLevel,
-		}
-	}
-
+	requestBody, _ = json.Marshal(user)
 	req.SetBody(requestBody)
 
-	url := fmt.Sprintf("%s/user/%s", r.config.UserApiUrl, userId)
-	req.SetRequestURI(url)
+	pathParams, _ := url.JoinPath("user", userId)
+	urlBuilder := &url.URL{
+		Scheme: r.config.UserApiUrl.Scheme,
+		Host:   r.config.UserApiUrl.Host,
+		Path:   pathParams,
+	}
+	requestUrl := urlBuilder.String()
+	req.SetRequestURI(requestUrl)
 
 	err = agent.Parse()
 	if err != nil {
@@ -337,6 +334,14 @@ func (r *repository) UpdateUserById(userId string, user *UpdateUserPayload) (*jw
 			LogFields: []zap.Field{
 				zap.Any("errors", errs),
 			},
+		}
+	}
+
+	if statusCode == fiber.StatusConflict {
+		return nil, &cerror.CustomError{
+			HttpStatusCode: fiber.StatusConflict,
+			LogMessage:     "user with this email already exists",
+			LogSeverity:    zapcore.WarnLevel,
 		}
 	}
 

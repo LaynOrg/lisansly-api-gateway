@@ -1,14 +1,16 @@
 package config
 
 import (
+	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 )
 
 type Config struct {
 	ServerPort string
-	UserApiUrl string
+	UserApiUrl *url.URL
 	Jwt        *JwtConfig
 }
 
@@ -20,9 +22,15 @@ func ReadConfig() (*Config, error) {
 		return nil, fmt.Errorf(EnvironmentVariableNotDefined, ServerPort)
 	}
 
-	userApiUrl := os.Getenv(UserApiUrl)
-	if userApiUrl == "" {
+	rawUserApiUrl := os.Getenv(UserApiUrl)
+	if rawUserApiUrl == "" {
 		return nil, fmt.Errorf(EnvironmentVariableNotDefined, UserApiUrl)
+	}
+
+	var userApiUrl *url.URL
+	userApiUrl, err = url.ParseRequestURI(rawUserApiUrl)
+	if err != nil {
+		return nil, errors.New("invalid user api url")
 	}
 
 	var jwtConfig *JwtConfig

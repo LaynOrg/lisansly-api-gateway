@@ -24,9 +24,6 @@ contract-test:
 	go clean -testcache
 	go test -tags=contract ./...
 
-dockerize:
-	docker build -t $(PROJECT_NAME) .
-
 coverage_report:
 	go clean -testcache
 	go test -tags=unit -coverprofile=coverage.out ./...

@@ -39,15 +39,31 @@ func TestReadConfig(t *testing.T) {
 		assert.Equal(t, err.Error(), errors.Errorf(EnvironmentVariableNotDefined, ServerPort).Error())
 	})
 
-	t.Run("empty user api url", func(t *testing.T) {
-		err := os.Setenv(ServerPort, "8080")
-		require.NoError(t, err)
+	t.Run("user-api url", func(t *testing.T) {
+		t.Run("empty user api url", func(t *testing.T) {
+			err := os.Setenv(ServerPort, "8080")
+			require.NoError(t, err)
 
-		cfg, err := ReadConfig()
-		defer os.Clearenv()
+			cfg, err := ReadConfig()
+			defer os.Clearenv()
 
-		assert.Empty(t, cfg)
-		assert.Equal(t, err.Error(), errors.Errorf(EnvironmentVariableNotDefined, UserApiUrl).Error())
+			assert.Empty(t, cfg)
+			assert.Equal(t, err.Error(), errors.Errorf(EnvironmentVariableNotDefined, UserApiUrl).Error())
+		})
+
+		t.Run("not valid user api url", func(t *testing.T) {
+			err := os.Setenv(ServerPort, "8080")
+			require.NoError(t, err)
+
+			err = os.Setenv(UserApiUrl, "not valid url")
+			require.NoError(t, err)
+
+			cfg, err := ReadConfig()
+			defer os.Clearenv()
+
+			assert.Empty(t, cfg)
+			assert.Equal(t, err.Error(), errors.New("invalid user api url").Error())
+		})
 	})
 }
 

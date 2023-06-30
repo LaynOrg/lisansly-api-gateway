@@ -2,8 +2,8 @@ package user
 
 const (
 	RoleUser = "user"
-)
 
-const (
 	ContextKeyUserId = "UserId"
+
+	RequestUserAgent = "API-Gateway"
 )
