@@ -18,12 +18,13 @@ import (
 
 func TestConsumerTest_APIGatewayToUserAPI(t *testing.T) {
 	pact := &dsl.Pact{
-		Consumer:          "APIGateway",
-		Provider:          "UserAPI",
-		PactFileWriteMode: "overwrite",
-		LogLevel:          "INFO",
-		PactDir:           filepath.Join("../../", "pacts"),
-		LogDir:            filepath.Join("../../", "pacts/logs"),
+		Consumer:                 "APIGateway",
+		Provider:                 "UserAPI",
+		PactFileWriteMode:        "overwrite",
+		LogLevel:                 "INFO",
+		LogDir:                   filepath.Join("../../", "pacts/logs"),
+		PactDir:                  filepath.Join("../../", "pacts"),
+		DisableToolValidityCheck: true,
 	}
 	defer pact.Teardown()
 
