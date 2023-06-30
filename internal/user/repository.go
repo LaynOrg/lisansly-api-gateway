@@ -87,7 +87,7 @@ func (r *repository) GetUserById(userId string) (*Document, error) {
 	if err != nil {
 		return nil, &cerror.CustomError{
 			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while unmarshal body",
+			LogMessage:     "error occurred while unmarshal response body",
 			LogSeverity:    zapcore.ErrorLevel,
 			LogFields: []zap.Field{
 				zap.Error(err),
@@ -111,6 +111,13 @@ func (r *repository) Register(user *RegisterPayload) (*jwt_generator.Tokens, err
 
 	var requestBody []byte
 	requestBody, err = json.Marshal(user)
+	if err != nil {
+		return nil, &cerror.CustomError{
+			HttpStatusCode: fiber.StatusInternalServerError,
+			LogMessage:     "error occurred while marshal body",
+			LogSeverity:    zapcore.ErrorLevel,
+		}
+	}
 	req.SetBody(requestBody)
 
 	url := fmt.Sprintf("%s/user", r.config.UserApiUrl)
@@ -150,7 +157,7 @@ func (r *repository) Register(user *RegisterPayload) (*jwt_generator.Tokens, err
 	if err != nil {
 		return nil, &cerror.CustomError{
 			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while unmarshal body",
+			LogMessage:     "error occurred while unmarshal response body",
 			LogSeverity:    zapcore.ErrorLevel,
 		}
 	}
@@ -177,6 +184,14 @@ func (r *repository) Login(user *LoginPayload) (*jwt_generator.Tokens, error) {
 
 	var requestBody []byte
 	requestBody, err = json.Marshal(user)
+	if err != nil {
+		return nil, &cerror.CustomError{
+			HttpStatusCode: fiber.StatusInternalServerError,
+			LogMessage:     "error occurred while marshal body",
+			LogSeverity:    zapcore.ErrorLevel,
+		}
+	}
+
 	req.SetBody(requestBody)
 
 	err = agent.Parse()
@@ -210,7 +225,7 @@ func (r *repository) Login(user *LoginPayload) (*jwt_generator.Tokens, error) {
 	if err != nil {
 		return nil, &cerror.CustomError{
 			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while unmarshal body",
+			LogMessage:     "error occurred while unmarshal response body",
 			LogSeverity:    zapcore.ErrorLevel,
 		}
 	}
@@ -270,7 +285,7 @@ func (r *repository) GetAccessTokenByRefreshToken(userId, refreshToken string) (
 	if err != nil {
 		return "", &cerror.CustomError{
 			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while unmarshal body",
+			LogMessage:     "error occurred while unmarshal response body",
 			LogSeverity:    zapcore.ErrorLevel,
 		}
 	}
@@ -291,6 +306,14 @@ func (r *repository) UpdateUserById(userId string, user *UpdateUserPayload) (*jw
 
 	var requestBody []byte
 	requestBody, err = json.Marshal(user)
+	if err != nil {
+		return nil, &cerror.CustomError{
+			HttpStatusCode: fiber.StatusInternalServerError,
+			LogMessage:     "error occurred while marshal body",
+			LogSeverity:    zapcore.ErrorLevel,
+		}
+	}
+
 	req.SetBody(requestBody)
 
 	url := fmt.Sprintf("%s/user/%s", r.config.UserApiUrl, userId)
@@ -330,7 +353,7 @@ func (r *repository) UpdateUserById(userId string, user *UpdateUserPayload) (*jw
 	if err != nil {
 		return nil, &cerror.CustomError{
 			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while unmarshal body",
+			LogMessage:     "error occurred while unmarshal response body",
 			LogSeverity:    zapcore.ErrorLevel,
 		}
 	}

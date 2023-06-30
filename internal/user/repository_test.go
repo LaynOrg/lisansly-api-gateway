@@ -1,3 +1,5 @@
+//go:build unit
+
 package user
 
 import (
@@ -51,7 +53,7 @@ func TestRepository_GetUserById(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -100,7 +102,7 @@ func TestRepository_GetUserById(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -125,7 +127,7 @@ func TestRepository_GetUserById(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -145,12 +147,12 @@ func TestRepository_GetUserById(t *testing.T) {
 		}, nil)
 		app := srv.GetFiberInstance()
 		app.Get("/user/:id", func(ctx *fiber.Ctx) error {
-			return ctx.Status(fiber.StatusOK).Send([]byte("{'invalid':'body'}"))
+			return ctx.Status(fiber.StatusOK).SendString("invalid body")
 		})
 
 		go srv.Start()
 		defer srv.Shutdown()
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -159,7 +161,7 @@ func TestRepository_GetUserById(t *testing.T) {
 		cerr := err.(*cerror.CustomError)
 
 		assert.Error(t, err)
-		assert.Equal(t, "error occurred while unmarshal body", cerr.LogMessage)
+		assert.Equal(t, "error occurred while unmarshal response body", cerr.LogMessage)
 		assert.Equal(t, fiber.StatusInternalServerError, cerr.HttpStatusCode)
 		assert.Empty(t, user)
 	})
@@ -181,7 +183,7 @@ func TestRepository_Register(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -200,21 +202,6 @@ func TestRepository_Register(t *testing.T) {
 	})
 
 	t.Run("request parse error", func(t *testing.T) {
-		srv := server.NewServer(&config.Config{
-			ServerPort: "8080",
-		}, nil)
-		app := srv.GetFiberInstance()
-		app.Post("/user", func(ctx *fiber.Ctx) error {
-			return ctx.Status(fiber.StatusCreated).JSON(&jwt_generator.Tokens{
-				AccessToken:  TestToken,
-				RefreshToken: TestToken,
-			})
-		})
-
-		go srv.Start()
-		defer srv.Shutdown()
-		time.Sleep(5 * time.Second)
-
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: "protocol://localhost:8080",
 		})
@@ -232,9 +219,8 @@ func TestRepository_Register(t *testing.T) {
 	})
 
 	t.Run("make request error", func(t *testing.T) {
-		port := getFreePort()
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+			UserApiUrl: "http://localhost",
 		})
 		tokens, err := userRepository.Register(&RegisterPayload{
 			Name:     TestUserName,
@@ -260,7 +246,7 @@ func TestRepository_Register(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -285,12 +271,12 @@ func TestRepository_Register(t *testing.T) {
 		}, nil)
 		app := srv.GetFiberInstance()
 		app.Post("/user", func(ctx *fiber.Ctx) error {
-			return ctx.Status(fiber.StatusCreated).Send([]byte("{'invalid':'body'}"))
+			return ctx.Status(fiber.StatusCreated).SendString("invalid body")
 		})
 
 		go srv.Start()
 		defer srv.Shutdown()
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -303,7 +289,7 @@ func TestRepository_Register(t *testing.T) {
 		cerr := err.(*cerror.CustomError)
 
 		assert.Error(t, err)
-		assert.Equal(t, "error occurred while unmarshal body", cerr.LogMessage)
+		assert.Equal(t, "error occurred while unmarshal response body", cerr.LogMessage)
 		assert.Equal(t, fiber.StatusInternalServerError, cerr.HttpStatusCode)
 		assert.Empty(t, tokens)
 	})
@@ -325,7 +311,7 @@ func TestRepository_Login(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -343,21 +329,6 @@ func TestRepository_Login(t *testing.T) {
 	})
 
 	t.Run("request parse error", func(t *testing.T) {
-		srv := server.NewServer(&config.Config{
-			ServerPort: "8080",
-		}, nil)
-		app := srv.GetFiberInstance()
-		app.Post("/login", func(ctx *fiber.Ctx) error {
-			return ctx.Status(fiber.StatusOK).JSON(&jwt_generator.Tokens{
-				AccessToken:  TestToken,
-				RefreshToken: TestToken,
-			})
-		})
-
-		go srv.Start()
-		defer srv.Shutdown()
-		time.Sleep(5 * time.Second)
-
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: "protocol://localhost:8080",
 		})
@@ -374,9 +345,8 @@ func TestRepository_Login(t *testing.T) {
 	})
 
 	t.Run("make request error", func(t *testing.T) {
-		port := getFreePort()
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+			UserApiUrl: "http://localhost",
 		})
 		tokens, err := userRepository.Login(&LoginPayload{
 			Email:    TestUserEmail,
@@ -402,7 +372,7 @@ func TestRepository_Login(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -431,7 +401,7 @@ func TestRepository_Login(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -443,7 +413,7 @@ func TestRepository_Login(t *testing.T) {
 		cerr := err.(*cerror.CustomError)
 
 		assert.Error(t, err)
-		assert.Equal(t, "error occurred while unmarshal body", cerr.LogMessage)
+		assert.Equal(t, "error occurred while unmarshal response body", cerr.LogMessage)
 		assert.Equal(t, fiber.StatusInternalServerError, cerr.HttpStatusCode)
 		assert.Empty(t, tokens)
 	})
@@ -464,7 +434,7 @@ func TestRepository_GetAccessTokenByRefreshToken(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -476,22 +446,8 @@ func TestRepository_GetAccessTokenByRefreshToken(t *testing.T) {
 	})
 
 	t.Run("request parse error", func(t *testing.T) {
-		srv := server.NewServer(&config.Config{
-			ServerPort: "8080",
-		}, nil)
-		app := srv.GetFiberInstance()
-		app.Get("/user/:userId/refreshToken/:refreshToken", func(ctx *fiber.Ctx) error {
-			return ctx.Status(fiber.StatusOK).JSON(&jwt_generator.Tokens{
-				AccessToken: TestToken,
-			})
-		})
-
-		go srv.Start()
-		defer srv.Shutdown()
-		time.Sleep(5 * time.Second)
-
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: "protocol://localhost:8080",
+			UserApiUrl: "protocol://localhost",
 		})
 		accessToken, err := userRepository.GetAccessTokenByRefreshToken(TestUserId, TestToken)
 		cerr := err.(*cerror.CustomError)
@@ -503,9 +459,8 @@ func TestRepository_GetAccessTokenByRefreshToken(t *testing.T) {
 	})
 
 	t.Run("make request error", func(t *testing.T) {
-		port := getFreePort()
 		userRepository := NewRepository(&config.Config{
-			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+			UserApiUrl: "http://localhost",
 		})
 		accessToken, err := userRepository.GetAccessTokenByRefreshToken(TestUserId, TestToken)
 		cerr := err.(*cerror.CustomError)
@@ -528,7 +483,7 @@ func TestRepository_GetAccessTokenByRefreshToken(t *testing.T) {
 
 		go srv.Start()
 		defer srv.Shutdown()
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Second)
 
 		userRepository := NewRepository(&config.Config{
 			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
@@ -540,6 +495,159 @@ func TestRepository_GetAccessTokenByRefreshToken(t *testing.T) {
 		assert.Equal(t, "user-api return error", cerr.LogMessage)
 		assert.Equal(t, fiber.StatusInternalServerError, cerr.HttpStatusCode)
 		assert.Empty(t, accessToken)
+	})
+
+	t.Run("user-api returns ambiguous body", func(t *testing.T) {
+		port := getFreePort()
+		srv := server.NewServer(&config.Config{
+			ServerPort: port,
+		}, nil)
+		app := srv.GetFiberInstance()
+		app.Get("/user/:userId/refreshToken/:refreshToken", func(ctx *fiber.Ctx) error {
+			return ctx.Status(fiber.StatusOK).SendString("invalid body")
+		})
+
+		go srv.Start()
+		defer srv.Shutdown()
+		time.Sleep(1 * time.Second)
+
+		userRepository := NewRepository(&config.Config{
+			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+		})
+		accessToken, err := userRepository.GetAccessTokenByRefreshToken(TestUserId, TestToken)
+		cerr := err.(*cerror.CustomError)
+
+		assert.Error(t, err)
+		assert.Equal(t, "error occurred while unmarshal response body", cerr.LogMessage)
+		assert.Equal(t, fiber.StatusInternalServerError, cerr.HttpStatusCode)
+		assert.Empty(t, accessToken)
+	})
+}
+
+func TestRepository_UpdateUserById(t *testing.T) {
+	t.Run("happy path", func(t *testing.T) {
+		port := getFreePort()
+		srv := server.NewServer(&config.Config{
+			ServerPort: port,
+		}, nil)
+		app := srv.GetFiberInstance()
+		app.Patch("/user/:userId", func(ctx *fiber.Ctx) error {
+			return ctx.Status(fiber.StatusOK).JSON(&jwt_generator.Tokens{
+				AccessToken:  TestToken,
+				RefreshToken: TestToken,
+			})
+		})
+
+		go srv.Start()
+		defer srv.Shutdown()
+		time.Sleep(1 * time.Second)
+
+		userRepository := NewRepository(&config.Config{
+			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+		})
+		tokens, err := userRepository.UpdateUserById(TestUserId, &UpdateUserPayload{
+			Name:     TestUserName,
+			Email:    TestUserEmail,
+			Password: TestUserPassword,
+		})
+
+		assert.NoError(t, err)
+		assert.Equal(t, &jwt_generator.Tokens{
+			AccessToken:  TestToken,
+			RefreshToken: TestToken,
+		}, tokens)
+	})
+
+	t.Run("request parse error", func(t *testing.T) {
+		userRepository := NewRepository(&config.Config{
+			UserApiUrl: "protocol://localhost",
+		})
+		tokens, err := userRepository.UpdateUserById(TestUserId, &UpdateUserPayload{
+			Name:     TestUserName,
+			Email:    TestUserEmail,
+			Password: TestUserPassword,
+		})
+		cerr := err.(*cerror.CustomError)
+
+		assert.Error(t, err)
+		assert.Equal(t, "error occurred while parse request", cerr.LogMessage)
+		assert.Equal(t, fiber.StatusInternalServerError, cerr.HttpStatusCode)
+		assert.Empty(t, tokens)
+	})
+
+	t.Run("make request error", func(t *testing.T) {
+		userRepository := NewRepository(&config.Config{
+			UserApiUrl: "http://localhost",
+		})
+		tokens, err := userRepository.UpdateUserById(TestUserId, &UpdateUserPayload{
+			Name:     TestUserName,
+			Email:    TestUserEmail,
+			Password: TestUserPassword,
+		})
+		cerr := err.(*cerror.CustomError)
+
+		assert.Error(t, err)
+		assert.Equal(t, "error occurred while make request", cerr.LogMessage)
+		assert.Equal(t, fiber.StatusInternalServerError, cerr.HttpStatusCode)
+		assert.Empty(t, tokens)
+	})
+
+	t.Run("user-api returns unexpected status code", func(t *testing.T) {
+		port := getFreePort()
+		srv := server.NewServer(&config.Config{
+			ServerPort: port,
+		}, nil)
+		app := srv.GetFiberInstance()
+		app.Patch("/user/:userId", func(ctx *fiber.Ctx) error {
+			return ctx.SendStatus(fiber.StatusInternalServerError)
+		})
+
+		go srv.Start()
+		defer srv.Shutdown()
+		time.Sleep(1 * time.Second)
+
+		userRepository := NewRepository(&config.Config{
+			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+		})
+		tokens, err := userRepository.UpdateUserById(TestUserId, &UpdateUserPayload{
+			Name:     TestUserName,
+			Email:    TestUserEmail,
+			Password: TestUserPassword,
+		})
+
+		assert.Error(t, err)
+		assert.Equal(t, "user-api return error", err.(*cerror.CustomError).LogMessage)
+		assert.Equal(t, fiber.StatusInternalServerError, err.(*cerror.CustomError).HttpStatusCode)
+		assert.Empty(t, tokens)
+	})
+
+	t.Run("user-api return ambiguous body", func(t *testing.T) {
+		port := getFreePort()
+		srv := server.NewServer(&config.Config{
+			ServerPort: port,
+		}, nil)
+		app := srv.GetFiberInstance()
+		app.Patch("/user/:userId", func(ctx *fiber.Ctx) error {
+			return ctx.Status(fiber.StatusOK).SendString("invalid body")
+		})
+
+		go srv.Start()
+		defer srv.Shutdown()
+		time.Sleep(1 * time.Second)
+
+		userRepository := NewRepository(&config.Config{
+			UserApiUrl: fmt.Sprintf("http://localhost:%s", port),
+		})
+		tokens, err := userRepository.UpdateUserById(TestUserId, &UpdateUserPayload{
+			Name:     TestUserName,
+			Email:    TestUserEmail,
+			Password: TestUserPassword,
+		})
+
+		assert.Error(t, err)
+		assert.Equal(t, "error occurred while unmarshal response body", err.(*cerror.CustomError).LogMessage)
+		assert.Equal(t, fiber.StatusInternalServerError, err.(*cerror.CustomError).HttpStatusCode)
+		assert.Empty(t, tokens)
 	})
 }
 
