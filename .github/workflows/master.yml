@@ -131,7 +131,7 @@ jobs:
       - name: Can I Deploy?
         run: |
           ${{ env.PACT_CLI }} broker can-i-deploy --verbose \
-            --pacticipant APIGateway \
+            --pacticipant API-Gateway \
             --version ${{ github.sha }} \
             --to-environment dev \
             --retry-while-unknown 30 \
@@ -179,7 +179,7 @@ jobs:
       - name: Can I Deploy To Production?
         run: |
           ${{ env.PACT_CLI }} broker can-i-deploy --verbose \
-            --pacticipant APIGateway \
+            --pacticipant API-Gateway \
             --version ${{ github.sha }} \
             --to-environment production \
             --retry-while-unknown 30 \
