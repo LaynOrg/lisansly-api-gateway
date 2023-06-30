@@ -8,7 +8,7 @@ on:
 
 env:
   APP_NAME: ${{ github.event.repository.name }}
-  PACT_CLI: docker run --rm -e PACT_BROKER_BASE_URL -e ${{ secrets.PACT_BROKER_USERNAME }} -e ${{ secrets.PACT_BROKER_PASSWORD }} pactfoundation/pact-cli:latest
+  PACT_CLI: docker run --rm -e ${{ secrets.PACT_BROKER_BASE_URL }} -e ${{ secrets.PACT_BROKER_USERNAME }} -e ${{ secrets.PACT_BROKER_PASSWORD }} pactfoundation/pact-cli:latest
 
 jobs:
 
@@ -89,18 +89,16 @@ jobs:
         with:
           go-version: "1.20"
 
-      - name: Prepare Pact for contract tests
-        run: |
-          cd /opt
-          curl -fsSL https://raw.githubusercontent.com/pact-foundation/pact-ruby-standalone/master/install.sh | bash
-          export PATH=$PATH:/opt/pact/bin
+
+      - run: docker pull pactfoundation/pact-cli:latest
 
       - name: Run contract tests
         run: make contract-test
 
       - name: Publish contracts
         run: |
-          pact-broker publish pacts/ --verbose \
+          ${{ env.PACT_CLI }} -w ${PWD} -v ${PWD}:${PWD} \
+            publish pacts/ --verbose \
             --broker-base-url="${{ secrets.PACT_BROKER_BASE_URL }}" \
             --broker-token="${{ secrets.PACT_BROKER_TOKEN }}" \
             --consumer-app-version="${{ github.sha }}"
