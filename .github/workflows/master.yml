@@ -8,7 +8,7 @@ on:
 
 env:
   APP_NAME: ${{ github.event.repository.name }}
-  PACT_CLI: docker run --rm -v ${PWD}:${PWD} -e ${{ secrets.PACT_BROKER_BASE_URL }} -e ${{ secrets.PACT_BROKER_TOKEN }} pactfoundation/pact-cli
+  PACT_CLI: docker run --rm -e PACT_BROKER_BASE_URL -e ${{ secrets.PACT_BROKER_USERNAME }} -e ${{ secrets.PACT_BROKER_PASSWORD }} pactfoundation/pact-cli:latest
 
 jobs:
 
@@ -132,8 +132,8 @@ jobs:
         run: |
           ${{ env.PACT_CLI }} broker can-i-deploy --verbose \
             --pacticipant API-Gateway \
-            --version ${{ github.sha }} \
             --to-environment dev \
+            --latest \
             --retry-while-unknown 30 \
             --retry-interval 10
 
@@ -180,8 +180,8 @@ jobs:
         run: |
           ${{ env.PACT_CLI }} broker can-i-deploy --verbose \
             --pacticipant API-Gateway \
-            --version ${{ github.sha }} \
             --to-environment production \
+            --latest \
             --retry-while-unknown 30 \
             --retry-interval 10
 
