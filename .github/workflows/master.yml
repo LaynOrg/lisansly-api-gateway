@@ -8,7 +8,13 @@ on:
 
 env:
   APP_NAME: ${{ github.event.repository.name }}
-  PACT_CLI: docker run --rm -e ${{ secrets.PACT_BROKER_BASE_URL }} -e ${{ secrets.PACT_BROKER_USERNAME }} -e ${{ secrets.PACT_BROKER_PASSWORD }} pactfoundation/pact-cli:latest
+  PACT_CLI: |
+    docker run --rm --platform linux/amd64 \
+      -w ${PWD} \
+      -v ${PWD}:${PWD} \
+      -e PACT_BROKER_BASE_URL \
+      -e PACT_BROKER_TOKEN \
+      pactfoundation/pact-cli:latest
 
 jobs:
 
@@ -89,18 +95,19 @@ jobs:
         with:
           go-version: "1.20"
 
-
-      - run: docker pull pactfoundation/pact-cli:latest
+      - name: Setup Pact-Mock-Service
+        run: |
+          cd /opt
+          curl -fsSL https://raw.githubusercontent.com/pact-foundation/pact-ruby-standalone/master/install.sh | bash
+          export PATH=$PATH:/opt/pact/bin
 
       - name: Run contract tests
         run: make contract-test
 
       - name: Publish contracts
         run: |
-          ${{ env.PACT_CLI }} -w ${PWD} -v ${PWD}:${PWD} \
-            publish pacts/ --verbose \
-            --broker-base-url="${{ secrets.PACT_BROKER_BASE_URL }}" \
-            --broker-token="${{ secrets.PACT_BROKER_TOKEN }}" \
+          ${{ env.PACT_CLI }} publish ${PWD}/pacts \
+            --verbose \
             --consumer-app-version="${{ github.sha }}"
 
   security-analysis:
@@ -121,11 +128,8 @@ jobs:
       - security-analysis
 
     runs-on: ubuntu-latest
+    container: pactfoundation/pact-cli:latest
     steps:
-      - uses: actions/checkout@v3
-
-      - run: docker pull pactfoundation/pact-cli:latest
-
       - name: Can I Deploy?
         run: |
           ${{ env.PACT_CLI }} broker can-i-deploy --verbose \
@@ -169,11 +173,8 @@ jobs:
       - deploy-to-dev
 
     runs-on: ubuntu-latest
+    container: pactfoundation/pact-cli:latest
     steps:
-      - uses: actions/checkout@v3
-
-      - run: docker pull pactfoundation/pact-cli:latest
-
       - name: Can I Deploy To Production?
         run: |
           ${{ env.PACT_CLI }} broker can-i-deploy --verbose \
