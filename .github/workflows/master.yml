@@ -9,11 +9,11 @@ on:
 env:
   APP_NAME: ${{ github.event.repository.name }}
   PACT_CLI: |
-    docker run --rm --platform linux/amd64 \
+    docker run --rm -v \
       -w ${PWD} \
       -v ${PWD}:${PWD} \
-      -e PACT_BROKER_BASE_URL \
-      -e PACT_BROKER_TOKEN \
+      -e PACT_BROKER_BASE_URL="${{secrets.PACT_BROKER_BASE_URL}}" \
+      -e PACT_BROKER_TOKEN="${{secrets.PACT_BROKER_TOKEN}}" \
       pactfoundation/pact-cli:latest
 
 jobs:
