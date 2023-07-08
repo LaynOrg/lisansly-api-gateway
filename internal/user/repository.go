@@ -346,7 +346,11 @@ func (r *repository) UpdateUserById(userId string, user *UpdateUserPayload) (*jw
 	}
 
 	if statusCode != fiber.StatusOK {
-		return nil, cerror.ErrorApiReturnError("user-api", statusCode)
+		return nil, &cerror.CustomError{
+			HttpStatusCode: statusCode,
+			LogMessage:     "user-api return error",
+			LogSeverity:    zapcore.ErrorLevel,
+		}
 	}
 
 	var tokens *jwt_generator.Tokens
