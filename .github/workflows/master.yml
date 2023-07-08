@@ -8,13 +8,7 @@ on:
 
 env:
   APP_NAME: ${{ github.event.repository.name }}
-  PACT_CLI: |
-    docker run --rm -v \
-      -w ${PWD} \
-      -v ${PWD}:${PWD} \
-      -e PACT_BROKER_BASE_URL="${{secrets.PACT_BROKER_BASE_URL}}" \
-      -e PACT_BROKER_TOKEN="${{secrets.PACT_BROKER_TOKEN}}" \
-      pactfoundation/pact-cli:latest
+  PACT_CLI: docker run --rm -w ${PWD} -v ${PWD}:${PWD} -e PACT_BROKER_BASE_URL="${{secrets.PACT_BROKER_BASE_URL}}" -e PACT_BROKER_TOKEN="${{secrets.PACT_BROKER_TOKEN}}" pactfoundation/pact-cli:latest
 
 jobs:
 
@@ -84,8 +78,8 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
 
   contract-test:
-    needs:
-      - unit-test
+    #    needs:
+    #      - unit-test
 
     runs-on: ubuntu-latest
     steps:
@@ -106,7 +100,8 @@ jobs:
 
       - name: Publish contracts
         run: |
-          ${{ env.PACT_CLI }} publish ${PWD}/pacts \
+          ${{ env.PACT_CLI }} \
+            publish pacts \
             --verbose \
             --consumer-app-version="${{ github.sha }}"
 
