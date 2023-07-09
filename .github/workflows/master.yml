@@ -123,8 +123,11 @@ jobs:
       - security-analysis
 
     runs-on: ubuntu-latest
-    container: pactfoundation/pact-cli:latest
     steps:
+      - uses: actions/checkout@v3
+
+      - run: docker pull pactfoundation/pact-cli:latest
+
       - name: Can I Deploy?
         run: |
           ${{ env.PACT_CLI }} broker can-i-deploy --verbose \
@@ -168,8 +171,11 @@ jobs:
       - deploy-to-dev
 
     runs-on: ubuntu-latest
-    container: pactfoundation/pact-cli:latest
     steps:
+      - uses: actions/checkout@v3
+
+      - run: docker pull pactfoundation/pact-cli:latest
+
       - name: Can I Deploy To Production?
         run: |
           ${{ env.PACT_CLI }} broker can-i-deploy --verbose \
