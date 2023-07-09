@@ -134,8 +134,7 @@ jobs:
             --pacticipant API-Gateway \
             --to-environment dev \
             --latest \
-            --retry-while-unknown 30 \
-            --retry-interval 10
+            --retry-while-unknown 5
 
   deploy-to-dev:
     environment: dev
@@ -166,6 +165,20 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
+  record-deployment-for-dev-environment:
+    needs:
+      - deploy-to-dev
+
+    runs-on: ubuntu-latest
+    steps:
+      - run: docker pull pactfoundation/pact-cli:latest
+
+      - run: |
+          ${{ env.PACT_CLI }} pact-broker record-deployment \
+            --pacticipant API-Gateway \
+            --version ${{ github.sha }} \
+            --environment dev
+
   can-i-deploy-to-prod:
     needs:
       - deploy-to-dev
@@ -182,8 +195,7 @@ jobs:
             --pacticipant API-Gateway \
             --to-environment production \
             --latest \
-            --retry-while-unknown 30 \
-            --retry-interval 10
+            --retry-while-unknown 5
 
   deploy-to-prod:
     environment: production
@@ -213,3 +225,18 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  record-deployment-for-prod-environment:
+    environment: production
+    needs:
+      - deploy-to-prod
+
+    runs-on: ubuntu-latest
+    steps:
+      - run: docker pull pactfoundation/pact-cli:latest
+
+      - run: |
+          ${{ env.PACT_CLI }} pact-broker record-deployment \
+            --pacticipant API-Gateway \
+            --version ${{ github.sha }} \
+            --environment production
