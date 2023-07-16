@@ -180,7 +180,7 @@ jobs:
 
   can-i-deploy-to-prod:
     needs:
-      - deploy-to-dev
+      - record-deployment-for-dev-environment
 
     runs-on: ubuntu-latest
     steps:
