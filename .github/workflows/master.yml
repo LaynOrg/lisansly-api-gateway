@@ -91,8 +91,9 @@ jobs:
 
       - name: Setup Pact-Mock-Service
         run: |
-          go install github.com/pact-foundation/pact-go/v2@2.x.x
-          pact-go -l DEBUG install
+          wget https://github.com/pact-foundation/pact-reference/releases/download/libpact_ffi-v0.4.6/libpact_ffi-linux-x86_64.so.gz
+          gunzip libpact_ffi-linux-x86_64.so.gz
+          mv libpact_ffi-linux-x86_64.so /usr/local/lib/libpact_ffi.so
 
       - name: Run contract tests
         run: make contract-test
