@@ -89,14 +89,13 @@ jobs:
         with:
           go-version: "1.20"
 
-      - name: Install pact-go CLI
+      - name: Setup Pact-Mock-Service
         run: |
-          go install github.com/pact-foundation/pact-go/v2@2.x.x
-          pact-go -l DEBUG install -d /tmp
+          cd /opt
+          curl -fsSL https://raw.githubusercontent.com/pact-foundation/pact-ruby-standalone/master/install.sh | bash
+          export PATH=$PATH:/opt/pact/bin
 
       - name: Run contract tests
-        env:
-          PACT_LOG_LEVEL: DEBUG
         run: make contract-test
 
       - name: Publish contracts
@@ -182,7 +181,7 @@ jobs:
 
   can-i-deploy-to-prod:
     needs:
-      - record-deployment-for-dev-environment
+      - deploy-to-dev
 
     runs-on: ubuntu-latest
     steps:
