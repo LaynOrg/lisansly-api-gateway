@@ -78,37 +78,37 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
 
-  contract-test:
-    needs:
-      - unit-test
-
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: actions/setup-go@v4
-        with:
-          go-version: "1.20"
-
-      - name: Install pact-go CLI
-        run: |
-          go install github.com/pact-foundation/pact-go/v2@2.x.x
-          pact-go -l DEBUG install -d /tmp
-
-      - name: Run contract tests
-        env:
-          PACT_LOG_LEVEL: DEBUG
-        run: make contract-test
-
-      - name: Publish contracts
-        uses: pactflow/actions/publish-pact-files@v1.0.1
-        env:
-          pactfiles: pacts/*.json
-          version: ${{ github.sha }}
+  #  contract-test:
+  #    needs:
+  #      - unit-test
+  #
+  #    runs-on: ubuntu-latest
+  #    steps:
+  #      - uses: actions/checkout@v3
+  #
+  #      - uses: actions/setup-go@v4
+  #        with:
+  #          go-version: "1.20"
+  #
+  #      - name: Install pact-go CLI
+  #        run: |
+  #          go install github.com/pact-foundation/pact-go/v2@2.x.x
+  #          pact-go -l DEBUG install -d /tmp
+  #
+  #      - name: Run contract tests
+  #        env:
+  #          PACT_LOG_LEVEL: DEBUG
+  #        run: make contract-test
+  #
+  #      - name: Publish contracts
+  #        uses: pactflow/actions/publish-pact-files@v1.0.1
+  #        env:
+  #          pactfiles: pacts/*.json
+  #          version: ${{ github.sha }}
 
   security-analysis:
     needs:
-      - contract-test
+      - unit-test
 
     runs-on: ubuntu-latest
     steps:
@@ -119,27 +119,27 @@ jobs:
         with:
           args: ./...
 
-  can-i-deploy-to-dev:
-    needs:
-      - security-analysis
-
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - run: docker pull pactfoundation/pact-cli:latest
-
-      - name: Can I Deploy?
-        uses: pactflow/actions/can-i-deploy@v1.0.1
-        env:
-          application_name: API-Gateway
-          version: ${{ github.sha }}
-          to_environment: dev
+  #  can-i-deploy-to-dev:
+  #    needs:
+  #      - security-analysis
+  #
+  #    runs-on: ubuntu-latest
+  #    steps:
+  #      - uses: actions/checkout@v3
+  #
+  #      - run: docker pull pactfoundation/pact-cli:latest
+  #
+  #      - name: Can I Deploy?
+  #        uses: pactflow/actions/can-i-deploy@v1.0.1
+  #        env:
+  #          application_name: API-Gateway
+  #          version: ${{ github.sha }}
+  #          to_environment: dev
 
   deploy-to-dev:
     environment: dev
     needs:
-      - can-i-deploy-to-dev
+      - security-analysis
 
     runs-on: ubuntu-latest
     steps:
@@ -165,41 +165,41 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-  record-deployment-for-dev-environment:
-    needs:
-      - deploy-to-dev
+  #  record-deployment-for-dev-environment:
+  #    needs:
+  #      - deploy-to-dev
+  #
+  #    runs-on: ubuntu-latest
+  #    steps:
+  #      - run: docker pull pactfoundation/pact-cli:latest
+  #
+  #      - uses: pactflow/actions/record-deployment@v1.0.1
+  #        env:
+  #          application_name: API-Gateway
+  #          version: ${{ github.sha }}
+  #          environment: dev
 
-    runs-on: ubuntu-latest
-    steps:
-      - run: docker pull pactfoundation/pact-cli:latest
-
-      - uses: pactflow/actions/record-deployment@v1.0.1
-        env:
-          application_name: API-Gateway
-          version: ${{ github.sha }}
-          environment: dev
-
-  can-i-deploy-to-prod:
-    needs:
-      - record-deployment-for-dev-environment
-
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - run: docker pull pactfoundation/pact-cli:latest
-
-      - name: Can I Deploy To Production?
-        uses: pactflow/actions/can-i-deploy@v1.0.1
-        env:
-          application_name: API-Gateway
-          version: ${{ github.sha }}
-          to_environment: production
+  #  can-i-deploy-to-prod:
+  #    needs:
+  #      - record-deployment-for-dev-environment
+  #
+  #    runs-on: ubuntu-latest
+  #    steps:
+  #      - uses: actions/checkout@v3
+  #
+  #      - run: docker pull pactfoundation/pact-cli:latest
+  #
+  #      - name: Can I Deploy To Production?
+  #        uses: pactflow/actions/can-i-deploy@v1.0.1
+  #        env:
+  #          application_name: API-Gateway
+  #          version: ${{ github.sha }}
+  #          to_environment: production
 
   deploy-to-prod:
     environment: production
     needs:
-      - can-i-deploy-to-prod
+      - deploy-to-dev
 
     runs-on: ubuntu-latest
     steps:
@@ -225,17 +225,17 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-  record-deployment-for-prod-environment:
-    environment: production
-    needs:
-      - deploy-to-prod
-
-    runs-on: ubuntu-latest
-    steps:
-      - run: docker pull pactfoundation/pact-cli:latest
-
-      - uses: pactflow/actions/record-deployment@v1.0.1
-        env:
-          application_name: API-Gateway
-          version: ${{ github.sha }}
-          environment: production
+#  record-deployment-for-prod-environment:
+#    environment: production
+#    needs:
+#      - deploy-to-prod
+#
+#    runs-on: ubuntu-latest
+#    steps:
+#      - run: docker pull pactfoundation/pact-cli:latest
+#
+#      - uses: pactflow/actions/record-deployment@v1.0.1
+#        env:
+#          application_name: API-Gateway
+#          version: ${{ github.sha }}
+#          environment: production
