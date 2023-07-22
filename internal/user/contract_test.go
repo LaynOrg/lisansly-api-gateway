@@ -4,13 +4,18 @@ package user
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
-	"github.com/pact-foundation/pact-go/dsl"
+	"github.com/pact-foundation/pact-go/v2/consumer"
+	"github.com/pact-foundation/pact-go/v2/matchers"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"api-gateway/pkg/cerror"
 	"api-gateway/pkg/config"
@@ -26,16 +31,13 @@ const (
 )
 
 func TestConsumerContract_APIGatewayToUserAPI(t *testing.T) {
-	pact := &dsl.Pact{
-		Consumer:                 "API-Gateway",
-		Provider:                 "User-API",
-		PactFileWriteMode:        "overwrite",
-		LogLevel:                 "INFO",
-		LogDir:                   filepath.Join("../../", "pacts/logs"),
-		PactDir:                  filepath.Join("../../", "pacts"),
-		DisableToolValidityCheck: true,
-	}
-	defer pact.Teardown()
+	pact, err := consumer.NewV2Pact(consumer.MockHTTPProviderConfig{
+		Consumer: "API-Gateway",
+		Provider: "User-API",
+		LogDir:   filepath.Join("../../", "pacts/logs"),
+		PactDir:  filepath.Join("../../", "pacts"),
+	})
+	assert.NoError(t, err)
 
 	t.Run("POST /user", func(t *testing.T) {
 		TestUser := &RegisterPayload{
@@ -43,37 +45,41 @@ func TestConsumerContract_APIGatewayToUserAPI(t *testing.T) {
 			Email:    ContractTestUserEmail,
 			Password: ContractTestUserPassword,
 		}
+		requestBody, err := json.Marshal(TestUser)
+		require.NoError(t, err)
 
 		t.Run("happy path", func(t *testing.T) {
+
+			responseBody, err := json.Marshal(&jwt_generator.Tokens{
+				AccessToken:  ContractTestToken,
+				RefreshToken: ContractTestToken,
+			})
+			require.NoError(t, err)
+
 			pact.
 				AddInteraction().
 				Given("Create user").
 				UponReceiving("a request to create user").
-				WithRequest(dsl.Request{
-					Method: fiber.MethodPost,
-					Path:   dsl.String("/user"),
-					Headers: dsl.MapMatcher{
-						fiber.HeaderContentType: dsl.String(fiber.MIMEApplicationJSON),
-						fiber.HeaderAccept:      dsl.String(fiber.MIMEApplicationJSON),
-					},
-					Body: dsl.Like(TestUser),
-				}).
-				WillRespondWith(dsl.Response{
-					Status: fiber.StatusCreated,
-					Headers: dsl.MapMatcher{
-						fiber.HeaderContentType: dsl.String(fiber.MIMEApplicationJSON),
-					},
-					Body: dsl.Like(&jwt_generator.Tokens{
-						AccessToken:  ContractTestToken,
-						RefreshToken: ContractTestToken,
-					}),
-				})
+				WithRequest(
+					http.MethodPost,
+					"/user",
+					func(builder *consumer.V2RequestBuilder) {
+						builder.
+							Header(fiber.HeaderAccept, matchers.String(fiber.MIMEApplicationJSON)).
+							Body(fiber.MIMEApplicationJSON, requestBody)
+					}).
+				WillRespondWith(
+					fiber.StatusCreated,
+					func(builder *consumer.V2ResponseBuilder) {
+						builder.
+							Body(fiber.MIMEApplicationJSON, responseBody)
+					})
 
-			var test = func() error {
+			err = pact.ExecuteTest(t, func(serverConfig consumer.MockServerConfig) error {
 				userRepository := NewRepository(&config.Config{
 					UserApiUrl: &url.URL{
 						Scheme: "http",
-						Host:   fmt.Sprintf("localhost:%d", pact.Server.Port),
+						Host:   fmt.Sprintf("%s:%d", serverConfig.Host, serverConfig.Port),
 					},
 				})
 
@@ -83,12 +89,8 @@ func TestConsumerContract_APIGatewayToUserAPI(t *testing.T) {
 				}
 
 				return nil
-			}
-
-			err := pact.Verify(test)
-			if err != nil {
-				t.Fatal(err)
-			}
+			})
+			assert.NoError(t, err)
 		})
 
 		t.Run("when user already exists", func(t *testing.T) {
@@ -96,24 +98,21 @@ func TestConsumerContract_APIGatewayToUserAPI(t *testing.T) {
 				AddInteraction().
 				Given("Create user but user already exists").
 				UponReceiving("a request to create user").
-				WithRequest(dsl.Request{
-					Method: fiber.MethodPost,
-					Path:   dsl.String("/user"),
-					Headers: dsl.MapMatcher{
-						fiber.HeaderContentType: dsl.String(fiber.MIMEApplicationJSON),
-						fiber.HeaderAccept:      dsl.String(fiber.MIMEApplicationJSON),
-					},
-					Body: dsl.Like(TestUser),
-				}).
-				WillRespondWith(dsl.Response{
-					Status: fiber.StatusConflict,
-				})
+				WithRequest(
+					fiber.MethodPost,
+					"/user",
+					func(builder *consumer.V2RequestBuilder) {
+						builder.
+							Header(fiber.HeaderAccept, matchers.String(fiber.MIMEApplicationJSON)).
+							Body(fiber.MIMEApplicationJSON, requestBody)
+					}).
+				WillRespondWith(fiber.StatusConflict)
 
-			var test = func() error {
+			err := pact.ExecuteTest(t, func(serverConfig consumer.MockServerConfig) error {
 				userRepository := NewRepository(&config.Config{
 					UserApiUrl: &url.URL{
 						Scheme: "http",
-						Host:   fmt.Sprintf("localhost:%d", pact.Server.Port),
+						Host:   fmt.Sprintf("%s:%d", serverConfig.Host, serverConfig.Port),
 					},
 				})
 
@@ -126,12 +125,8 @@ func TestConsumerContract_APIGatewayToUserAPI(t *testing.T) {
 				}
 
 				return nil
-			}
-
-			err := pact.Verify(test)
-			if err != nil {
-				t.Fatal(err)
-			}
+			})
+			assert.NoError(t, err)
 		})
 	})
 
@@ -140,37 +135,40 @@ func TestConsumerContract_APIGatewayToUserAPI(t *testing.T) {
 			Email:    ContractTestUserEmail,
 			Password: ContractTestUserPassword,
 		}
+		requestBody, err := json.Marshal(TestUser)
+		require.NoError(t, err)
 
 		t.Run("happy path", func(t *testing.T) {
+			responseBody, err := json.Marshal(&jwt_generator.Tokens{
+				AccessToken:  ContractTestToken,
+				RefreshToken: ContractTestToken,
+			})
+			require.NoError(t, err)
+
 			pact.
 				AddInteraction().
 				Given(fmt.Sprintf("Login user with %s id", ContractTestUserId)).
-				UponReceiving("a request to get access token and refresh token via login").
-				WithRequest(dsl.Request{
-					Method: fiber.MethodPost,
-					Path:   dsl.String("/login"),
-					Headers: dsl.MapMatcher{
-						fiber.HeaderAccept:      dsl.String(fiber.MIMEApplicationJSON),
-						fiber.HeaderContentType: dsl.String(fiber.MIMEApplicationJSON),
-					},
-					Body: dsl.Like(TestUser),
-				}).
-				WillRespondWith(dsl.Response{
-					Status: fiber.StatusOK,
-					Headers: dsl.MapMatcher{
-						fiber.HeaderContentType: dsl.String(fiber.MIMEApplicationJSON),
-					},
-					Body: dsl.Like(&jwt_generator.Tokens{
-						AccessToken:  ContractTestToken,
-						RefreshToken: ContractTestToken,
-					}),
-				})
+				UponReceiving("response return unauthorized").
+				WithRequest(
+					fiber.MethodPost,
+					"/login",
+					func(builder *consumer.V2RequestBuilder) {
+						builder.
+							Header(fiber.HeaderAccept, matchers.String(fiber.MIMEApplicationJSON)).
+							Body(fiber.MIMEApplicationJSON, requestBody)
+					}).
+				WillRespondWith(
+					fiber.StatusOK,
+					func(builder *consumer.V2ResponseBuilder) {
+						builder.
+							Body(fiber.MIMEApplicationJSON, responseBody)
+					})
 
-			var test = func() error {
+			err = pact.ExecuteTest(t, func(serverConfig consumer.MockServerConfig) error {
 				userRepository := NewRepository(&config.Config{
 					UserApiUrl: &url.URL{
 						Scheme: "http",
-						Host:   fmt.Sprintf("localhost:%d", pact.Server.Port),
+						Host:   fmt.Sprintf("%s:%d", serverConfig.Host, serverConfig.Port),
 					},
 				})
 
@@ -180,12 +178,8 @@ func TestConsumerContract_APIGatewayToUserAPI(t *testing.T) {
 				}
 
 				return nil
-			}
-
-			err := pact.Verify(test)
-			if err != nil {
-				t.Fatal(err)
-			}
+			})
+			assert.NoError(t, err)
 		})
 
 		t.Run("invalid credentials", func(t *testing.T) {
@@ -193,82 +187,71 @@ func TestConsumerContract_APIGatewayToUserAPI(t *testing.T) {
 				AddInteraction().
 				Given(fmt.Sprintf("Login user with %s id credentials is not valid", ContractTestUserId)).
 				UponReceiving("a request to get access token and refresh token via login").
-				WithRequest(dsl.Request{
-					Method: fiber.MethodPost,
-					Path:   dsl.String("/login"),
-					Headers: dsl.MapMatcher{
-						fiber.HeaderAccept:      dsl.String(fiber.MIMEApplicationJSON),
-						fiber.HeaderContentType: dsl.String(fiber.MIMEApplicationJSON),
-					},
-					Body: dsl.Like(TestUser),
-				}).
-				WillRespondWith(dsl.Response{
-					Status: fiber.StatusOK,
-					Headers: dsl.MapMatcher{
-						fiber.HeaderContentType: dsl.String(fiber.MIMEApplicationJSON),
-					},
-					Body: dsl.Like(&jwt_generator.Tokens{
-						AccessToken:  ContractTestToken,
-						RefreshToken: ContractTestToken,
-					}),
-				})
+				WithRequest(
+					fiber.MethodPost,
+					"/login",
+					func(builder *consumer.V2RequestBuilder) {
+						builder.
+							Header(fiber.HeaderAccept, matchers.String(fiber.MIMEApplicationJSON)).
+							Body(fiber.MIMEApplicationJSON, requestBody)
+					}).
+				WillRespondWith(fiber.StatusUnauthorized)
 
-			var test = func() error {
+			err := pact.ExecuteTest(t, func(serverConfig consumer.MockServerConfig) error {
 				userRepository := NewRepository(&config.Config{
 					UserApiUrl: &url.URL{
 						Scheme: "http",
-						Host:   fmt.Sprintf("localhost:%d", pact.Server.Port),
+						Host:   fmt.Sprintf("%s:%d", serverConfig.Host, serverConfig.Port),
 					},
 				})
 
 				_, err := userRepository.Login(TestUser)
 				if err != nil {
+					if err.(*cerror.CustomError).HttpStatusCode == fiber.StatusUnauthorized {
+						return nil
+					}
 					return err
 				}
 
 				return nil
-			}
-
-			err := pact.Verify(test)
-			if err != nil {
-				t.Fatal(err)
-			}
+			})
+			assert.NoError(t, err)
 		})
 	})
 
 	t.Run("GET /user/:userId", func(t *testing.T) {
 		t.Run("happy path", func(t *testing.T) {
+			user := Document{
+				Id:        ContractTestUserId,
+				Name:      ContractTestUserName,
+				Email:     ContractTestUserEmail,
+				Password:  ContractTestUserPassword,
+				Role:      RoleUser,
+				CreatedAt: time.Now().UTC(),
+			}
+			responseBody, err := json.Marshal(user)
+			require.NoError(t, err)
+
 			pact.
 				AddInteraction().
 				Given(fmt.Sprintf("User with %s id exits", ContractTestUserId)).
 				UponReceiving("a request to get user by id").
-				WithRequest(dsl.Request{
-					Method: fiber.MethodGet,
-					Path:   dsl.String(fmt.Sprintf("/user/%s", ContractTestUserId)),
-					Headers: dsl.MapMatcher{
-						fiber.HeaderAccept: dsl.String(fiber.MIMEApplicationJSON),
-					},
-				}).
-				WillRespondWith(dsl.Response{
-					Status: fiber.StatusOK,
-					Headers: dsl.MapMatcher{
-						fiber.HeaderContentType: dsl.String(fiber.MIMEApplicationJSON),
-					},
-					Body: dsl.MapMatcher{
-						"_id":       dsl.Like(ContractTestUserId),
-						"name":      dsl.Like(ContractTestUserName),
-						"email":     dsl.Like(ContractTestUserEmail),
-						"password":  dsl.Like(ContractTestUserPassword),
-						"role":      dsl.Like(RoleUser),
-						"createdAt": dsl.Like(time.Now().UTC()),
-					},
-				})
+				WithRequest(
+					fiber.MethodGet,
+					fmt.Sprintf("/user/%s", ContractTestUserId),
+				).
+				WillRespondWith(
+					fiber.StatusOK,
+					func(builder *consumer.V2ResponseBuilder) {
+						builder.
+							Body(fiber.MIMEApplicationJSON, responseBody)
+					})
 
-			var test = func() error {
+			err = pact.ExecuteTest(t, func(serverConfig consumer.MockServerConfig) error {
 				userRepository := NewRepository(&config.Config{
 					UserApiUrl: &url.URL{
 						Scheme: "http",
-						Host:   fmt.Sprintf("localhost:%d", pact.Server.Port),
+						Host:   fmt.Sprintf("%s:%d", serverConfig.Host, serverConfig.Port),
 					},
 				})
 
@@ -278,12 +261,8 @@ func TestConsumerContract_APIGatewayToUserAPI(t *testing.T) {
 				}
 
 				return nil
-			}
-
-			err := pact.Verify(test)
-			if err != nil {
-				t.Fatal(err)
-			}
+			})
+			assert.NoError(t, err)
 		})
 
 		t.Run("when user not found", func(t *testing.T) {
@@ -291,22 +270,17 @@ func TestConsumerContract_APIGatewayToUserAPI(t *testing.T) {
 				AddInteraction().
 				Given(fmt.Sprintf("User with %s id not exists", ContractTestUserId)).
 				UponReceiving("a request to get user by id").
-				WithRequest(dsl.Request{
-					Method: fiber.MethodGet,
-					Path:   dsl.String(fmt.Sprintf("/user/%s", ContractTestUserId)),
-					Headers: dsl.MapMatcher{
-						fiber.HeaderAccept: dsl.String(fiber.MIMEApplicationJSON),
-					},
-				}).
-				WillRespondWith(dsl.Response{
-					Status: fiber.StatusNotFound,
-				})
+				WithRequest(
+					fiber.MethodGet,
+					fmt.Sprintf("/user/%s", ContractTestUserId),
+				).
+				WillRespondWith(fiber.StatusNotFound)
 
-			var test = func() error {
+			err := pact.ExecuteTest(t, func(serverConfig consumer.MockServerConfig) error {
 				userRepository := NewRepository(&config.Config{
 					UserApiUrl: &url.URL{
 						Scheme: "http",
-						Host:   fmt.Sprintf("localhost:%d", pact.Server.Port),
+						Host:   fmt.Sprintf("%s:%d", serverConfig.Host, serverConfig.Port),
 					},
 				})
 
@@ -319,12 +293,8 @@ func TestConsumerContract_APIGatewayToUserAPI(t *testing.T) {
 				}
 
 				return nil
-			}
-
-			err := pact.Verify(test)
-			if err != nil {
-				t.Fatal(err)
-			}
+			})
+			assert.NoError(t, err)
 		})
 	})
 
@@ -334,37 +304,39 @@ func TestConsumerContract_APIGatewayToUserAPI(t *testing.T) {
 			Email:    ContractTestUserEmail,
 			Password: ContractTestUserPassword,
 		}
+		requestBody, err := json.Marshal(TestUser)
+		require.NoError(t, err)
 
 		t.Run("happy path", func(t *testing.T) {
+			responseBody, err := json.Marshal(&jwt_generator.Tokens{
+				AccessToken:  ContractTestToken,
+				RefreshToken: ContractTestToken,
+			})
+			require.NoError(t, err)
+
 			pact.
 				AddInteraction().
 				Given(fmt.Sprintf("Update user with %s id", ContractTestUserId)).
 				UponReceiving("a request to update user info and getting access token and refresh token").
-				WithRequest(dsl.Request{
-					Method: fiber.MethodPatch,
-					Path:   dsl.String(fmt.Sprintf("/user/%s", ContractTestUserId)),
-					Headers: dsl.MapMatcher{
-						fiber.HeaderAccept:      dsl.String(fiber.MIMEApplicationJSON),
-						fiber.HeaderContentType: dsl.String(fiber.MIMEApplicationJSON),
-					},
-					Body: dsl.Like(TestUser),
-				}).
-				WillRespondWith(dsl.Response{
-					Status: fiber.StatusOK,
-					Headers: dsl.MapMatcher{
-						fiber.HeaderContentType: dsl.String(fiber.MIMEApplicationJSON),
-					},
-					Body: dsl.Like(&jwt_generator.Tokens{
-						AccessToken:  ContractTestToken,
-						RefreshToken: ContractTestToken,
-					}),
-				})
+				WithRequest(
+					fiber.MethodPatch,
+					fmt.Sprintf("/user/%s", ContractTestUserId),
+					func(builder *consumer.V2RequestBuilder) {
+						builder.
+							Header(fiber.HeaderAccept, matchers.String(fiber.MIMEApplicationJSON)).
+							Body(fiber.MIMEApplicationJSON, requestBody)
+					}).
+				WillRespondWith(fiber.StatusOK,
+					func(builder *consumer.V2ResponseBuilder) {
+						builder.
+							Body(fiber.MIMEApplicationJSON, responseBody)
+					})
 
-			var test = func() error {
+			err = pact.ExecuteTest(t, func(serverConfig consumer.MockServerConfig) error {
 				userRepository := NewRepository(&config.Config{
 					UserApiUrl: &url.URL{
 						Scheme: "http",
-						Host:   fmt.Sprintf("localhost:%d", pact.Server.Port),
+						Host:   fmt.Sprintf("%s:%d", serverConfig.Host, serverConfig.Port),
 					},
 				})
 
@@ -374,12 +346,8 @@ func TestConsumerContract_APIGatewayToUserAPI(t *testing.T) {
 				}
 
 				return nil
-			}
-
-			err := pact.Verify(test)
-			if err != nil {
-				t.Fatal(err)
-			}
+			})
+			assert.NoError(t, err)
 		})
 
 		t.Run("email already exists", func(t *testing.T) {
@@ -387,24 +355,21 @@ func TestConsumerContract_APIGatewayToUserAPI(t *testing.T) {
 				AddInteraction().
 				Given(fmt.Sprintf("Update user with %s id and %s email but email already exists", ContractTestUserId, ContractTestUserEmail)).
 				UponReceiving("a request to update user info and getting access token and refresh token").
-				WithRequest(dsl.Request{
-					Method: fiber.MethodPatch,
-					Path:   dsl.String(fmt.Sprintf("/user/%s", ContractTestUserId)),
-					Headers: dsl.MapMatcher{
-						fiber.HeaderAccept:      dsl.String(fiber.MIMEApplicationJSON),
-						fiber.HeaderContentType: dsl.String(fiber.MIMEApplicationJSON),
-					},
-					Body: dsl.Like(TestUser),
-				}).
-				WillRespondWith(dsl.Response{
-					Status: fiber.StatusConflict,
-				})
+				WithRequest(
+					fiber.MethodPatch,
+					fmt.Sprintf("/user/%s", ContractTestUserId),
+					func(builder *consumer.V2RequestBuilder) {
+						builder.
+							Header(fiber.HeaderAccept, matchers.String(fiber.MIMEApplicationJSON)).
+							Body(fiber.MIMEApplicationJSON, requestBody)
+					}).
+				WillRespondWith(fiber.StatusConflict)
 
-			var test = func() error {
+			err := pact.ExecuteTest(t, func(serverConfig consumer.MockServerConfig) error {
 				userRepository := NewRepository(&config.Config{
 					UserApiUrl: &url.URL{
 						Scheme: "http",
-						Host:   fmt.Sprintf("localhost:%d", pact.Server.Port),
+						Host:   fmt.Sprintf("%s:%d", serverConfig.Host, serverConfig.Port),
 					},
 				})
 
@@ -418,12 +383,8 @@ func TestConsumerContract_APIGatewayToUserAPI(t *testing.T) {
 				}
 
 				return nil
-			}
-
-			err := pact.Verify(test)
-			if err != nil {
-				t.Fatal(err)
-			}
+			})
+			assert.NoError(t, err)
 		})
 	})
 }
