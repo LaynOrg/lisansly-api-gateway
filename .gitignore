@@ -1,6 +1,7 @@
 .env
 .idea/
 .fleet/
+.serverless/
 .vscode/
 out/
 tmp/

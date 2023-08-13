@@ -1,4 +1,4 @@
-service: APIGateway
+service: API-Gateway
 
 provider:
   name: aws
@@ -13,7 +13,7 @@ package:
     - "api-gateway"
 
 functions:
-  UserAPI:
+  API-Gateway:
     handler: api-gateway
     environment: ${file(env.${opt:stage, self:provider.stage}.json)}
     events:
