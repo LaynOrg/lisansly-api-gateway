@@ -19,7 +19,7 @@ func ReadConfig() (*Config, error) {
 
 	serverPort := os.Getenv(ServerPort)
 	if serverPort == "" {
-		return nil, fmt.Errorf(EnvironmentVariableNotDefined, ServerPort)
+		serverPort = "8080"
 	}
 
 	rawUserApiUrl := os.Getenv(UserApiUrl)

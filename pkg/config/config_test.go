@@ -33,10 +33,23 @@ func TestReadConfig(t *testing.T) {
 	})
 
 	t.Run("empty server port", func(t *testing.T) {
-		cfg, err := ReadConfig()
+		var err error
 
-		assert.Empty(t, cfg)
-		assert.Equal(t, err.Error(), errors.Errorf(EnvironmentVariableNotDefined, ServerPort).Error())
+		err = os.Setenv(UserApiUrl, "http://localhost:8081")
+		require.NoError(t, err)
+
+		err = os.Setenv(JwtPrivateKey, "privateKey")
+		require.NoError(t, err)
+
+		err = os.Setenv(JwtPublicKey, "publicKey")
+		require.NoError(t, err)
+
+		var cfg *Config
+		cfg, err = ReadConfig()
+		defer os.Clearenv()
+
+		assert.NoError(t, err)
+		assert.Equal(t, cfg.ServerPort, "8080")
 	})
 
 	t.Run("user-api url", func(t *testing.T) {
