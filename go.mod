@@ -1,16 +1,16 @@
 module api-gateway
 
-go 1.20
+go 1.21
 
 require (
 	github.com/aws/aws-lambda-go v1.41.0
 	github.com/awslabs/aws-lambda-go-api-proxy v0.14.0
-	github.com/go-playground/validator/v10 v10.15.0
+	github.com/go-playground/validator/v10 v10.15.1
 	github.com/goccy/go-json v0.10.2
 	github.com/gofiber/fiber/v2 v2.48.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/golang/mock v1.6.0
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.3.1
 	github.com/joho/godotenv v1.5.1
 	github.com/pact-foundation/pact-go/v2 v2.0.0-beta.23
 	github.com/pkg/errors v0.9.1
@@ -36,7 +36,6 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.48.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
-	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.12.0 // indirect
 	golang.org/x/net v0.14.0 // indirect
