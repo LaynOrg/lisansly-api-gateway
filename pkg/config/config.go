@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/kr/pretty"
 )
 
 type Config struct {
@@ -63,4 +65,8 @@ func ReadJwtConfig() (*JwtConfig, error) {
 		PrivateKey: []byte(privateKey),
 		PublicKey:  []byte(publicKey),
 	}, nil
+}
+
+func (c *Config) Print() {
+	_, _ = pretty.Print(c)
 }

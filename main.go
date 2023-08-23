@@ -41,6 +41,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	cfg.Print()
 
 	var handlers []server.Handler
 

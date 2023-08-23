@@ -114,3 +114,8 @@ func TestReadJwtConfig(t *testing.T) {
 		assert.Equal(t, err.Error(), errors.Errorf(EnvironmentVariableNotDefined, JwtPublicKey).Error())
 	})
 }
+
+func TestConfig_Print(t *testing.T) {
+	cfg := &Config{}
+	cfg.Print()
+}

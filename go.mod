@@ -12,6 +12,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.3.1
 	github.com/joho/godotenv v1.5.1
+	github.com/kr/pretty v0.3.1
 	github.com/pact-foundation/pact-go/v2 v2.0.0-beta.23
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.3
@@ -27,12 +28,14 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/hashicorp/logutils v1.0.0 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
+	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.48.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
