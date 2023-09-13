@@ -13,7 +13,7 @@ type LoginPayload struct {
 	Password string `json:"password" validate:"required,gte=10"`
 }
 
-type GetAccessTokenByRefreshTokenPayload struct {
+type GetAccessTokenViaRefreshTokenPayload struct {
 	RefreshToken string `validate:"required,jwt"`
 }
 
@@ -24,12 +24,12 @@ type UpdateUserPayload struct {
 }
 
 type Document struct {
-	Id        string    `json:"_id"`
+	Id        string    `json:"id"`
 	Name      string    `json:"name"`
 	Email     string    `json:"email"`
 	Password  string    `json:"password"`
 	Role      string    `json:"role"`
-	CreatedAt time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt,omitempty"`
 	DeletedAt time.Time `json:"deletedAt,omitempty"`
 }

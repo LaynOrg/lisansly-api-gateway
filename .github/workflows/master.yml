@@ -6,10 +6,9 @@ on:
     branches:
       - master
 
-env:
-  APP_NAME: ${{ github.event.repository.name }}
-  PACT_BROKER_BASE_URL: ${{ secrets.PACT_BROKER_BASE_URL }}
-  PACT_BROKER_TOKEN: ${{ secrets.PACT_BROKER_TOKEN }}
+# env:
+#  PACT_BROKER_BASE_URL: ${{ secrets.PACT_BROKER_BASE_URL }}
+#  PACT_BROKER_TOKEN: ${{ secrets.PACT_BROKER_TOKEN }}
 
 jobs:
 
@@ -42,13 +41,17 @@ jobs:
 
       - name: Build
         shell: bash
-        run: CGO_ENABLED=0 GOOS=linux go build -o $APP_NAME .
+        run: |
+          make build
+          make zip
+          rm build/**/bootstrap
+          zip -r build.zip build
 
-      - name: Upload executable file as artifact
+      - name: Upload build files as artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.APP_NAME }}
-          path: ${{ env.APP_NAME }}
+          name: build
+          path: build.zip
           if-no-files-found: error
 
   unit-test:
@@ -145,20 +148,31 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions/download-artifact@v3
+      - name: Download Artifact
+        uses: actions/download-artifact@v3
         with:
-          name: ${{ env.APP_NAME }}
+          name: build
 
-      - run: |
+      - name: Prepare Build Files
+        run: |
+          unzip build.zip
+          rm -rf build.zip
+
+      - name: Prepare Environment Variables
+        run: |
           touch env.dev.json
           echo '{
-            "IS_AT_REMOTE": true,
-            "USER_API_URL": "${{ vars.USER_API_URL }}",
             "JWT_PRIVATE_KEY": "${{ secrets.JWT_PRIVATE_KEY }}",
-            "JWT_PUBLIC_KEY": "${{ secrets.JWT_PUBLIC_KEY }}"
+            "JWT_PUBLIC_KEY": "${{ secrets.JWT_PUBLIC_KEY }}",
+            "USER_API_GET_USER_BY_ID_FUNCTION_NAME": "${{ secrets.USER_API_GET_USER_BY_ID_FUNCTION_NAME }}",
+            "USER_API_REGISTER_FUNCTION_NAME": "${{ secrets.USER_API_REGISTER_FUNCTION_NAME }}",
+            "USER_API_LOGIN_FUNCTION_NAME": "${{ secrets.USER_API_LOGIN_FUNCTION_NAME }}",
+            "USER_API_GET_ACCESS_TOKEN_VIA_REFRESH_TOKEN_FUNCTION_NAME": "${{ secrets.USER_API_GET_ACCESS_TOKEN_VIA_REFRESH_TOKEN_FUNCTION_NAME }}",
+            "USER_API_UPDATE_USER_BY_ID_FUNCTION_NAME": "${{ secrets.USER_API_UPDATE_USER_BY_ID_FUNCTION_NAME }}"
           }' > env.dev.json
 
-      - uses: serverless/github-action@v3.2
+      - name: Deploy To Development Environment
+        uses: serverless/github-action@v3.2
         with:
           args: deploy --stage dev
         env:
@@ -205,20 +219,31 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions/download-artifact@v3
+      - name: Download Artifact
+        uses: actions/download-artifact@v3
         with:
-          name: ${{ env.APP_NAME }}
+          name: build
 
-      - run: |
+      - name: Prepare Build Files
+        run: |
+          unzip build.zip
+          rm -rf build.zip
+
+      - name: Prepare Environment Variables
+        run: |
           touch env.production.json
           echo '{
-            "IS_AT_REMOTE": true,
-            "USER_API_URL": "${{ vars.USER_API_URL }}",
             "JWT_PRIVATE_KEY": "${{ secrets.JWT_PRIVATE_KEY }}",
-            "JWT_PUBLIC_KEY": "${{ secrets.JWT_PUBLIC_KEY }}"
+            "JWT_PUBLIC_KEY": "${{ secrets.JWT_PUBLIC_KEY }}",
+            "USER_API_GET_USER_BY_ID_FUNCTION_NAME": "${{ secrets.USER_API_GET_USER_BY_ID_FUNCTION_NAME }}",
+            "USER_API_REGISTER_FUNCTION_NAME": "${{ secrets.USER_API_REGISTER_FUNCTION_NAME }}",
+            "USER_API_LOGIN_FUNCTION_NAME": "${{ secrets.USER_API_LOGIN_FUNCTION_NAME }}",
+            "USER_API_GET_ACCESS_TOKEN_VIA_REFRESH_TOKEN_FUNCTION_NAME": "${{ secrets.USER_API_GET_ACCESS_TOKEN_VIA_REFRESH_TOKEN_FUNCTION_NAME }}",
+            "USER_API_UPDATE_USER_BY_ID_FUNCTION_NAME": "${{ secrets.USER_API_UPDATE_USER_BY_ID_FUNCTION_NAME }}"
           }' > env.production.json
 
-      - uses: serverless/github-action@v3.2
+      - name: Deploy To Production Environment
+        uses: serverless/github-action@v3.2
         with:
           args: deploy --stage production
         env:

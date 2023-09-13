@@ -6,9 +6,10 @@ package user
 
 import (
 	jwt_generator "api-gateway/pkg/jwt_generator"
+	context "context"
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockRepository is a mock of Repository interface.
@@ -34,77 +35,77 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 	return m.recorder
 }
 
-// GetAccessTokenByRefreshToken mocks base method.
-func (m *MockRepository) GetAccessTokenByRefreshToken(userId, refreshToken string) (string, error) {
+// GetAccessTokenViaRefreshToken mocks base method.
+func (m *MockRepository) GetAccessTokenViaRefreshToken(ctx context.Context, userId, refreshToken string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAccessTokenByRefreshToken", userId, refreshToken)
+	ret := m.ctrl.Call(m, "GetAccessTokenViaRefreshToken", ctx, userId, refreshToken)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetAccessTokenByRefreshToken indicates an expected call of GetAccessTokenByRefreshToken.
-func (mr *MockRepositoryMockRecorder) GetAccessTokenByRefreshToken(userId, refreshToken interface{}) *gomock.Call {
+// GetAccessTokenViaRefreshToken indicates an expected call of GetAccessTokenViaRefreshToken.
+func (mr *MockRepositoryMockRecorder) GetAccessTokenViaRefreshToken(ctx, userId, refreshToken interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccessTokenByRefreshToken", reflect.TypeOf((*MockRepository)(nil).GetAccessTokenByRefreshToken), userId, refreshToken)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccessTokenViaRefreshToken", reflect.TypeOf((*MockRepository)(nil).GetAccessTokenViaRefreshToken), ctx, userId, refreshToken)
 }
 
 // GetUserById mocks base method.
-func (m *MockRepository) GetUserById(userId string) (*Document, error) {
+func (m *MockRepository) GetUserById(ctx context.Context, userId string) (*Document, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserById", userId)
+	ret := m.ctrl.Call(m, "GetUserById", ctx, userId)
 	ret0, _ := ret[0].(*Document)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetUserById indicates an expected call of GetUserById.
-func (mr *MockRepositoryMockRecorder) GetUserById(userId interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) GetUserById(ctx, userId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserById", reflect.TypeOf((*MockRepository)(nil).GetUserById), userId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserById", reflect.TypeOf((*MockRepository)(nil).GetUserById), ctx, userId)
 }
 
 // Login mocks base method.
-func (m *MockRepository) Login(user *LoginPayload) (*jwt_generator.Tokens, error) {
+func (m *MockRepository) Login(ctx context.Context, user *LoginPayload) (*jwt_generator.Tokens, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Login", user)
+	ret := m.ctrl.Call(m, "Login", ctx, user)
 	ret0, _ := ret[0].(*jwt_generator.Tokens)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Login indicates an expected call of Login.
-func (mr *MockRepositoryMockRecorder) Login(user interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) Login(ctx, user interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockRepository)(nil).Login), user)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockRepository)(nil).Login), ctx, user)
 }
 
 // Register mocks base method.
-func (m *MockRepository) Register(user *RegisterPayload) (*jwt_generator.Tokens, error) {
+func (m *MockRepository) Register(ctx context.Context, user *RegisterPayload) (*jwt_generator.Tokens, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Register", user)
+	ret := m.ctrl.Call(m, "Register", ctx, user)
 	ret0, _ := ret[0].(*jwt_generator.Tokens)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Register indicates an expected call of Register.
-func (mr *MockRepositoryMockRecorder) Register(user interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) Register(ctx, user interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockRepository)(nil).Register), user)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockRepository)(nil).Register), ctx, user)
 }
 
 // UpdateUserById mocks base method.
-func (m *MockRepository) UpdateUserById(userId string, user *UpdateUserPayload) (*jwt_generator.Tokens, error) {
+func (m *MockRepository) UpdateUserById(ctx context.Context, userId string, user *UpdateUserPayload) (*jwt_generator.Tokens, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateUserById", userId, user)
+	ret := m.ctrl.Call(m, "UpdateUserById", ctx, userId, user)
 	ret0, _ := ret[0].(*jwt_generator.Tokens)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateUserById indicates an expected call of UpdateUserById.
-func (mr *MockRepositoryMockRecorder) UpdateUserById(userId, user interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) UpdateUserById(ctx, userId, user interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserById", reflect.TypeOf((*MockRepository)(nil).UpdateUserById), userId, user)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserById", reflect.TypeOf((*MockRepository)(nil).UpdateUserById), ctx, userId, user)
 }

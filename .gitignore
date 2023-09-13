@@ -3,12 +3,11 @@
 .fleet/
 .serverless/
 .vscode/
-out/
-tmp/
+build/
 pacts/
 node_modules/
 api-gateway
 coverage.txt
 coverage.out
-results.sarif
-results.html
+env.*.json
+!env.example.json

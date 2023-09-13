@@ -6,9 +6,10 @@ package user
 
 import (
 	jwt_generator "api-gateway/pkg/jwt_generator"
+	context "context"
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockService is a mock of Service interface.
@@ -35,16 +36,16 @@ func (m *MockService) EXPECT() *MockServiceMockRecorder {
 }
 
 // VerifyAccessToken mocks base method.
-func (m *MockService) VerifyAccessToken(accessToken string) (*jwt_generator.Claims, error) {
+func (m *MockService) VerifyAccessToken(ctx context.Context, accessToken string) (*jwt_generator.Claims, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "VerifyAccessToken", accessToken)
+	ret := m.ctrl.Call(m, "VerifyAccessToken", ctx, accessToken)
 	ret0, _ := ret[0].(*jwt_generator.Claims)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // VerifyAccessToken indicates an expected call of VerifyAccessToken.
-func (mr *MockServiceMockRecorder) VerifyAccessToken(accessToken interface{}) *gomock.Call {
+func (mr *MockServiceMockRecorder) VerifyAccessToken(ctx, accessToken interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyAccessToken", reflect.TypeOf((*MockService)(nil).VerifyAccessToken), accessToken)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyAccessToken", reflect.TypeOf((*MockService)(nil).VerifyAccessToken), ctx, accessToken)
 }

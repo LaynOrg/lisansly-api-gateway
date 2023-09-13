@@ -1,6 +1,9 @@
 package user
 
 import (
+	"context"
+	"errors"
+
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap/zapcore"
 
@@ -8,13 +11,13 @@ import (
 	"api-gateway/pkg/jwt_generator"
 )
 
+type Service interface {
+	VerifyAccessToken(ctx context.Context, accessToken string) (*jwt_generator.Claims, error)
+}
+
 type service struct {
 	jwtGenerator   jwt_generator.JwtGenerator
 	userRepository Repository
-}
-
-type Service interface {
-	VerifyAccessToken(accessToken string) (*jwt_generator.Claims, error)
 }
 
 func NewService(jwtGenerator jwt_generator.JwtGenerator, userRepository Repository) Service {
@@ -25,6 +28,7 @@ func NewService(jwtGenerator jwt_generator.JwtGenerator, userRepository Reposito
 }
 
 func (s *service) VerifyAccessToken(
+	ctx context.Context,
 	accessToken string,
 ) (*jwt_generator.Claims, error) {
 	var err error
@@ -40,10 +44,12 @@ func (s *service) VerifyAccessToken(
 	}
 
 	userId := jwtClaims.Subject
-	_, err = s.userRepository.GetUserById(userId)
+	_, err = s.userRepository.GetUserById(ctx, userId)
 	if err != nil {
-		statusCode := err.(*cerror.CustomError).HttpStatusCode
-		if statusCode == fiber.StatusNotFound {
+		var cerr *cerror.CustomError
+		errors.As(err, &cerr)
+
+		if cerr.HttpStatusCode == fiber.StatusNotFound {
 			return nil, &cerror.CustomError{
 				HttpStatusCode: fiber.StatusUnauthorized,
 				LogMessage:     "user not found email in jwt claims",

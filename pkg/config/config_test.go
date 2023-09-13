@@ -13,86 +13,302 @@ import (
 
 func TestReadConfig(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		err := os.Setenv(ServerPort, "8080")
+		var err error
+
+		err = os.Setenv(
+			EnvironmentVariableGetUserByIdFunctionName,
+			"getUserById",
+		)
 		require.NoError(t, err)
 
-		err = os.Setenv(UserApiUrl, "http://localhost:8081")
+		err = os.Setenv(
+			EnvironmentVariableRegisterFunctionName,
+			"register",
+		)
 		require.NoError(t, err)
 
-		err = os.Setenv(JwtPrivateKey, "privateKey")
+		err = os.Setenv(
+			EnvironmentVariableLoginFunctionName,
+			"login",
+		)
 		require.NoError(t, err)
 
-		err = os.Setenv(JwtPublicKey, "publicKey")
+		err = os.Setenv(
+			EnvironmentVariableGetAccessTokenViaRefreshTokenFunctionName,
+			"getAccessTokenViaRefreshToken",
+		)
+		require.NoError(t, err)
+
+		err = os.Setenv(
+			EnvironmentVariableUpdateUserByIdFunctionName,
+			"updateUser",
+		)
+		require.NoError(t, err)
+
+		err = os.Setenv(EnvironmentVariableJwtPrivateKey, "privateKey")
+		require.NoError(t, err)
+
+		err = os.Setenv(EnvironmentVariableJwtPublicKey, "publicKey")
 		require.NoError(t, err)
 
 		cfg, err := ReadConfig()
 		defer os.Clearenv()
 
 		assert.NoError(t, err)
-		assert.IsType(t, &Config{}, cfg)
+		assert.Equal(t, &Config{
+			FunctionNames: &FunctionNames{
+				UserAPI: map[UserApiFunctionNames]string{
+					GetAccessTokenViaRefreshToken: "getAccessTokenViaRefreshToken",
+					Login:                         "login",
+					Register:                      "register",
+					UpdateUserById:                "updateUser",
+					GetUserById:                   "getUserById",
+				},
+			},
+			Jwt: &JwtConfig{
+				PrivateKey: []byte("privateKey"),
+				PublicKey:  []byte("publicKey"),
+			},
+		}, cfg)
 	})
 
-	t.Run("empty server port", func(t *testing.T) {
+	t.Run("when user api config return error should return it", func(t *testing.T) {
 		var err error
 
-		err = os.Setenv(UserApiUrl, "http://localhost:8081")
+		err = os.Setenv(EnvironmentVariableJwtPrivateKey, "privateKey")
 		require.NoError(t, err)
 
-		err = os.Setenv(JwtPrivateKey, "privateKey")
+		err = os.Setenv(EnvironmentVariableJwtPublicKey, "publicKey")
 		require.NoError(t, err)
 
-		err = os.Setenv(JwtPublicKey, "publicKey")
+		cfg, err := ReadConfig()
+		defer os.Clearenv()
+
+		assert.Error(t, err)
+		assert.Nil(t, cfg)
+	})
+
+	t.Run("when jwt config return error should return it", func(t *testing.T) {
+		var err error
+
+		err = os.Setenv(EnvironmentVariableJwtPrivateKey, "privateKey")
 		require.NoError(t, err)
 
-		var cfg *Config
-		cfg, err = ReadConfig()
+		err = os.Setenv(EnvironmentVariableJwtPublicKey, "publicKey")
+		require.NoError(t, err)
+
+		cfg, err := ReadConfig()
+		defer os.Clearenv()
+
+		assert.Error(t, err)
+		assert.Nil(t, cfg)
+	})
+}
+
+func TestReadUserApiConfig(t *testing.T) {
+	t.Run("happy path", func(t *testing.T) {
+		var err error
+
+		err = os.Setenv(
+			EnvironmentVariableGetUserByIdFunctionName,
+			"getUserById",
+		)
+		require.NoError(t, err)
+
+		err = os.Setenv(
+			EnvironmentVariableRegisterFunctionName,
+			"register",
+		)
+		require.NoError(t, err)
+
+		err = os.Setenv(
+			EnvironmentVariableLoginFunctionName,
+			"login",
+		)
+		require.NoError(t, err)
+
+		err = os.Setenv(
+			EnvironmentVariableGetAccessTokenViaRefreshTokenFunctionName,
+			"getAccessTokenViaRefreshToken",
+		)
+		require.NoError(t, err)
+
+		err = os.Setenv(
+			EnvironmentVariableUpdateUserByIdFunctionName,
+			"updateUser",
+		)
+		require.NoError(t, err)
+
+		cfg, err := ReadUserApiConfig()
 		defer os.Clearenv()
 
 		assert.NoError(t, err)
-		assert.Equal(t, cfg.ServerPort, "8080")
+		assert.Equal(t, map[UserApiFunctionNames]string{
+			GetAccessTokenViaRefreshToken: "getAccessTokenViaRefreshToken",
+			Login:                         "login",
+			Register:                      "register",
+			UpdateUserById:                "updateUser",
+			GetUserById:                   "getUserById",
+		}, cfg)
 	})
 
-	t.Run("user-api url", func(t *testing.T) {
-		t.Run("empty user api url", func(t *testing.T) {
-			err := os.Setenv(ServerPort, "8080")
-			require.NoError(t, err)
+	t.Run("when getUserById function name is empty should return error", func(t *testing.T) {
+		cfg, err := ReadUserApiConfig()
 
-			cfg, err := ReadConfig()
-			defer os.Clearenv()
+		assert.Equal(t,
+			errors.Errorf(
+				EnvironmentVariableNotDefined,
+				EnvironmentVariableGetUserByIdFunctionName,
+			).Error(),
+			err.Error(),
+		)
+		assert.Empty(t, cfg)
+	})
 
-			assert.Empty(t, cfg)
-			assert.Equal(t, err.Error(), errors.Errorf(EnvironmentVariableNotDefined, UserApiUrl).Error())
-		})
+	t.Run("when register function name is empty should return error", func(t *testing.T) {
+		var err error
 
-		t.Run("not valid user api url", func(t *testing.T) {
-			err := os.Setenv(ServerPort, "8080")
-			require.NoError(t, err)
+		err = os.Setenv(
+			EnvironmentVariableGetUserByIdFunctionName,
+			"getUserById",
+		)
+		require.NoError(t, err)
 
-			err = os.Setenv(UserApiUrl, "not valid url")
-			require.NoError(t, err)
+		cfg, err := ReadUserApiConfig()
+		defer os.Clearenv()
 
-			cfg, err := ReadConfig()
-			defer os.Clearenv()
+		assert.Equal(t,
+			errors.Errorf(
+				EnvironmentVariableNotDefined,
+				EnvironmentVariableRegisterFunctionName,
+			).Error(),
+			err.Error(),
+		)
+		assert.Empty(t, cfg)
+	})
 
-			assert.Empty(t, cfg)
-			assert.Equal(t, err.Error(), errors.New("invalid user api url").Error())
-		})
+	t.Run("when login function name is empty should return error", func(t *testing.T) {
+		var err error
+
+		err = os.Setenv(
+			EnvironmentVariableGetUserByIdFunctionName,
+			"getUserById",
+		)
+		require.NoError(t, err)
+
+		err = os.Setenv(
+			EnvironmentVariableRegisterFunctionName,
+			"register",
+		)
+		require.NoError(t, err)
+
+		cfg, err := ReadUserApiConfig()
+		defer os.Clearenv()
+
+		assert.Equal(t,
+			errors.Errorf(
+				EnvironmentVariableNotDefined,
+				EnvironmentVariableLoginFunctionName,
+			).Error(),
+			err.Error(),
+		)
+		assert.Empty(t, cfg)
+	})
+
+	t.Run("when getAccessTokenViaRefreshToken function name is empty should return error", func(t *testing.T) {
+		var err error
+
+		err = os.Setenv(
+			EnvironmentVariableGetUserByIdFunctionName,
+			"getUserById",
+		)
+		require.NoError(t, err)
+
+		err = os.Setenv(
+			EnvironmentVariableRegisterFunctionName,
+			"register",
+		)
+		require.NoError(t, err)
+
+		err = os.Setenv(
+			EnvironmentVariableLoginFunctionName,
+			"login",
+		)
+		require.NoError(t, err)
+
+		cfg, err := ReadUserApiConfig()
+		defer os.Clearenv()
+
+		assert.Equal(t,
+			errors.Errorf(
+				EnvironmentVariableNotDefined,
+				EnvironmentVariableGetAccessTokenViaRefreshTokenFunctionName,
+			).Error(),
+			err.Error(),
+		)
+		assert.Empty(t, cfg)
+	})
+
+	t.Run("when updateUser function name is empty should return error", func(t *testing.T) {
+		var err error
+
+		err = os.Setenv(
+			EnvironmentVariableGetUserByIdFunctionName,
+			"getUserById",
+		)
+		require.NoError(t, err)
+
+		err = os.Setenv(
+			EnvironmentVariableRegisterFunctionName,
+			"register",
+		)
+		require.NoError(t, err)
+
+		err = os.Setenv(
+			EnvironmentVariableLoginFunctionName,
+			"login",
+		)
+		require.NoError(t, err)
+
+		err = os.Setenv(
+			EnvironmentVariableGetAccessTokenViaRefreshTokenFunctionName,
+			"getAccessTokenViaRefreshToken",
+		)
+		require.NoError(t, err)
+
+		cfg, err := ReadUserApiConfig()
+		defer os.Clearenv()
+
+		assert.Equal(t,
+			errors.Errorf(
+				EnvironmentVariableNotDefined,
+				EnvironmentVariableUpdateUserByIdFunctionName,
+			).Error(),
+			err.Error(),
+		)
+		assert.Empty(t, cfg)
 	})
 }
 
 func TestReadJwtConfig(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		err := os.Setenv(JwtPrivateKey, "privateKey")
+		err := os.Setenv(EnvironmentVariableJwtPrivateKey, "privateKey")
 		require.NoError(t, err)
 
-		err = os.Setenv(JwtPublicKey, "publicKey")
+		err = os.Setenv(EnvironmentVariableJwtPublicKey, "publicKey")
 		require.NoError(t, err)
 
 		cfg, err := ReadJwtConfig()
 		defer os.Clearenv()
 
 		assert.NoError(t, err)
-		assert.IsType(t, &JwtConfig{}, cfg)
+		assert.Equal(t,
+			&JwtConfig{
+				PrivateKey: []byte("privateKey"),
+				PublicKey:  []byte("publicKey"),
+			},
+			cfg,
+		)
 	})
 
 	t.Run("empty jwt private key", func(t *testing.T) {
@@ -100,22 +316,29 @@ func TestReadJwtConfig(t *testing.T) {
 		defer os.Clearenv()
 
 		assert.Empty(t, cfg)
-		assert.Equal(t, err.Error(), errors.Errorf(EnvironmentVariableNotDefined, JwtPrivateKey).Error())
+		assert.Equal(t,
+			errors.Errorf(
+				EnvironmentVariableNotDefined,
+				EnvironmentVariableJwtPrivateKey,
+			).Error(),
+			err.Error(),
+		)
 	})
 
 	t.Run("empty jwt public key", func(t *testing.T) {
-		err := os.Setenv(JwtPrivateKey, "privateKey")
+		err := os.Setenv(EnvironmentVariableJwtPrivateKey, "privateKey")
 		require.NoError(t, err)
 
 		cfg, err := ReadJwtConfig()
 		defer os.Clearenv()
 
 		assert.Empty(t, cfg)
-		assert.Equal(t, err.Error(), errors.Errorf(EnvironmentVariableNotDefined, JwtPublicKey).Error())
+		assert.Equal(t,
+			errors.Errorf(
+				EnvironmentVariableNotDefined,
+				EnvironmentVariableJwtPublicKey,
+			).Error(),
+			err.Error(),
+		)
 	})
-}
-
-func TestConfig_Print(t *testing.T) {
-	cfg := &Config{}
-	cfg.Print()
 }

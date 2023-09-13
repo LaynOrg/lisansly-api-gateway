@@ -9,38 +9,29 @@ import (
 	"api-gateway/pkg/cerror"
 	"api-gateway/pkg/jwt_generator"
 	"api-gateway/pkg/logger"
-	"api-gateway/pkg/server"
 )
 
+type Handler interface {
+	AuthenticationMiddleware(ctx *fiber.Ctx) error
+	Register(ctx *fiber.Ctx) error
+	Login(ctx *fiber.Ctx) error
+	GetAccessTokenViaRefreshToken(ctx *fiber.Ctx) error
+	UpdateUserById(ctx *fiber.Ctx) error
+}
+
 type handler struct {
-	userService    Service
+	service        Service
 	userRepository Repository
 	validate       *validator.Validate
 }
 
-type Handler interface {
-	server.Handler
-	AuthenticationMiddleware(ctx *fiber.Ctx) error
-	Register(ctx *fiber.Ctx) error
-	Login(ctx *fiber.Ctx) error
-	GetAccessTokenByRefreshToken(ctx *fiber.Ctx) error
-	UpdateUserById(ctx *fiber.Ctx) error
-}
-
-func NewHandler(userService Service, userRepository Repository) Handler {
+func NewHandler(service Service, userRepository Repository) Handler {
 	validate := validator.New()
 	return &handler{
-		userService:    userService,
+		service:        service,
 		userRepository: userRepository,
 		validate:       validate,
 	}
-}
-
-func (h *handler) RegisterRoutes(app *fiber.App) {
-	app.Post("/register", h.Register)
-	app.Post("/login", h.Login)
-	app.Get("/user/refreshToken/:refreshToken", h.AuthenticationMiddleware, h.GetAccessTokenByRefreshToken)
-	app.Patch("/user", h.AuthenticationMiddleware, h.UpdateUserById)
 }
 
 func (h *handler) AuthenticationMiddleware(ctx *fiber.Ctx) error {
@@ -63,7 +54,7 @@ func (h *handler) AuthenticationMiddleware(ctx *fiber.Ctx) error {
 
 	accessToken := authorizationHeader[7:authorizationHeaderLength]
 	var jwtClaims *jwt_generator.Claims
-	jwtClaims, err = h.userService.VerifyAccessToken(accessToken)
+	jwtClaims, err = h.service.VerifyAccessToken(ctx.Context(), accessToken)
 	if err != nil {
 		return err
 	}
@@ -106,7 +97,7 @@ func (h *handler) Register(ctx *fiber.Ctx) error {
 	}
 
 	var tokens *jwt_generator.Tokens
-	tokens, err = h.userRepository.Register(user)
+	tokens, err = h.userRepository.Register(ctx.Context(), user)
 	if err != nil {
 		return err
 	}
@@ -144,7 +135,7 @@ func (h *handler) Login(ctx *fiber.Ctx) error {
 	}
 
 	var tokens *jwt_generator.Tokens
-	tokens, err = h.userRepository.Login(user)
+	tokens, err = h.userRepository.Login(ctx.Context(), user)
 	if err != nil {
 		return err
 	}
@@ -153,11 +144,11 @@ func (h *handler) Login(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusOK).JSON(tokens)
 }
 
-func (h *handler) GetAccessTokenByRefreshToken(ctx *fiber.Ctx) error {
+func (h *handler) GetAccessTokenViaRefreshToken(ctx *fiber.Ctx) error {
 	var err error
 
 	log := logger.FromContext(ctx.Context()).
-		With(zap.String("eventName", "getAccessTokenByRefreshToken"))
+		With(zap.String("eventName", "getAccessTokenViaRefreshToken"))
 	logger.InjectContext(ctx.Context(), log)
 
 	refreshToken := ctx.Params("refreshToken")
@@ -170,7 +161,7 @@ func (h *handler) GetAccessTokenByRefreshToken(ctx *fiber.Ctx) error {
 		}
 	}
 
-	err = h.validate.Struct(&GetAccessTokenByRefreshTokenPayload{
+	err = h.validate.Struct(&GetAccessTokenViaRefreshTokenPayload{
 		RefreshToken: refreshToken,
 	})
 	if err != nil {
@@ -184,7 +175,7 @@ func (h *handler) GetAccessTokenByRefreshToken(ctx *fiber.Ctx) error {
 	}
 
 	var accessToken string
-	accessToken, err = h.userRepository.GetAccessTokenByRefreshToken(userId, refreshToken)
+	accessToken, err = h.userRepository.GetAccessTokenViaRefreshToken(ctx.Context(), userId, refreshToken)
 	if err != nil {
 		return err
 	}
@@ -235,7 +226,7 @@ func (h *handler) UpdateUserById(ctx *fiber.Ctx) error {
 	}
 
 	var tokens *jwt_generator.Tokens
-	tokens, err = h.userRepository.UpdateUserById(userId, user)
+	tokens, err = h.userRepository.UpdateUserById(ctx.Context(), userId, user)
 	if err != nil {
 		return err
 	}

@@ -15,7 +15,9 @@ func Middleware(ctx *fiber.Ctx, err error) error {
 	var cerr *CustomError
 	ok := errors.As(err, &cerr)
 	if !ok {
-		fiberError := err.(*fiber.Error)
+		var fiberError *fiber.Error
+		errors.As(err, &fiberError)
+
 		return ctx.SendStatus(fiberError.Code)
 	}
 
@@ -30,5 +32,5 @@ func Middleware(ctx *fiber.Ctx, err error) error {
 		zap.AddCallerSkip(StackSkipAmount),
 	).Log(cerr.LogSeverity, cerr.LogMessage)
 
-	return ctx.SendStatus(cerr.HttpStatusCode)
+	return ctx.SendStatus(int(cerr.HttpStatusCode))
 }

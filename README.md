@@ -1,12 +1,15 @@
 ## Lisansly API Gateway
 
 ### Running Locally
-Before run app you must set environment variables in .env file then you can running app just like this:
+
+Before invoking the function, you must set environment variables in the 'env.local.json' file.</br>
+Afterward, you can invoke the function.</br>
+Make sure to open Docker in the background.
 
 ```shell
-make run
-# or
-make build
+sls invoke local -f funcName
+#or
+serverless invoke local -f funcName
 ```
 
 ### Linting

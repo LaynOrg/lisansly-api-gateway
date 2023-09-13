@@ -1,20 +1,26 @@
-PROJECT_NAME = $(notdir $(CURDIR))
-
 get:
 	go get ./...
 	go mod tidy
+
+.PHONY: build
+build:
+	env GOOS=linux GOARCH=arm64 go build -o build/getAccessTokenViaRefreshToken/bootstrap internal/user/events/getAccessTokenViaRefreshToken/main.go
+	env GOOS=linux GOARCH=arm64 go build -o build/login/bootstrap internal/user/events/login/main.go
+	env GOOS=linux GOARCH=arm64 go build -o build/register/bootstrap internal/user/events/register/main.go
+	env GOOS=linux GOARCH=arm64 go build -o build/updateUser/bootstrap internal/user/events/updateUser/main.go
+
+.PHONY: zip
+zip:
+	zip -j build/getAccessTokenViaRefreshToken/getAccessTokenViaRefreshToken.zip build/getAccessTokenViaRefreshToken/bootstrap
+	zip -j build/login/login.zip build/login/bootstrap
+	zip -j build/register/register.zip build/register/bootstrap
+	zip -j build/updateUser/updateUser.zip build/updateUser/bootstrap
 
 security-analysis:
 	gosec ./...
 
 lint:
 	golangci-lint run -v -c .golangci.yml ./...
-
-dev:
-	air run
-
-run:
-	go run .
 
 test:
 	go clean -testcache
@@ -33,3 +39,5 @@ coverage_report:
 generate-mock:
 	mockgen --source=internal/user/service.go --destination=internal/user/service_mock.go --package=user
 	mockgen --source=internal/user/repository.go --destination=internal/user/repository_mock.go --package=user
+	mockgen --source=pkg/jwt_generator/jwt.go --destination=pkg/jwt_generator/jwt_mock.go --package=jwt_generator
+	mockgen --source=pkg/aws_wrapper/lambda_client.go --destination=pkg/aws_wrapper/lambda_client_mock.go --package=aws_wrapper

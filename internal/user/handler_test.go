@@ -14,16 +14,14 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zapcore"
 
 	"api-gateway/pkg/cerror"
-	"api-gateway/pkg/config"
 	"api-gateway/pkg/jwt_generator"
-	"api-gateway/pkg/server"
 )
 
 const (
@@ -35,13 +33,6 @@ func TestNewHandler(t *testing.T) {
 	assert.Implements(t, (*Handler)(nil), h)
 }
 
-func TestHandler_RegisterRoutes(t *testing.T) {
-	h := NewHandler(nil, nil)
-
-	app := fiber.New()
-	h.RegisterRoutes(app)
-}
-
 func TestHandler_AuthenticationMiddleware(t *testing.T) {
 	mockController := gomock.NewController(t)
 	defer mockController.Finish()
@@ -50,7 +41,7 @@ func TestHandler_AuthenticationMiddleware(t *testing.T) {
 		mockUserRepository := NewMockService(mockController)
 		mockUserRepository.
 			EXPECT().
-			VerifyAccessToken(TestToken).
+			VerifyAccessToken(gomock.Any(), TestToken).
 			Return(&jwt_generator.Claims{
 				Name:  TestUserName,
 				Email: TestUserEmail,
@@ -65,15 +56,15 @@ func TestHandler_AuthenticationMiddleware(t *testing.T) {
 				},
 			}, nil)
 
-		userHandler := NewHandler(mockUserRepository, nil)
-		srv := server.NewServer(&config.Config{}, nil)
-		app := srv.GetFiberInstance()
-		app.Get("/test", userHandler.AuthenticationMiddleware, func(ctx *fiber.Ctx) error {
+		h := NewHandler(mockUserRepository, nil)
+
+		app := fiber.New()
+		app.Get("/test", h.AuthenticationMiddleware, func(ctx *fiber.Ctx) error {
 			return ctx.SendStatus(fiber.StatusOK)
 		})
 
-		go srv.Start()
-		defer srv.Shutdown()
+		go app.Listen(":8080")
+		defer app.Shutdown()
 
 		req := httptest.NewRequest(fiber.MethodGet, "/test", nil)
 		req.Header.Set(fiber.HeaderAuthorization, fmt.Sprintf("Bearer %s", TestToken))
@@ -84,15 +75,17 @@ func TestHandler_AuthenticationMiddleware(t *testing.T) {
 	})
 
 	t.Run("when authorization is empty should return error", func(t *testing.T) {
-		userHandler := NewHandler(nil, nil)
-		srv := server.NewServer(&config.Config{}, nil)
-		app := srv.GetFiberInstance()
-		app.Get("/test", userHandler.AuthenticationMiddleware, func(ctx *fiber.Ctx) error {
+		h := NewHandler(nil, nil)
+
+		app := fiber.New(fiber.Config{
+			ErrorHandler: cerror.Middleware,
+		})
+		app.Get("/test", h.AuthenticationMiddleware, func(ctx *fiber.Ctx) error {
 			return ctx.SendStatus(fiber.StatusOK)
 		})
 
-		go srv.Start()
-		defer srv.Shutdown()
+		go app.Listen(":8080")
+		defer app.Shutdown()
 
 		req := httptest.NewRequest(fiber.MethodGet, "/test", nil)
 		resp, err := app.Test(req)
@@ -102,25 +95,27 @@ func TestHandler_AuthenticationMiddleware(t *testing.T) {
 	})
 
 	t.Run("when authorization is invalid should return error", func(t *testing.T) {
-		mockUserService := NewMockService(mockController)
-		mockUserService.
+		mockservice := NewMockService(mockController)
+		mockservice.
 			EXPECT().
-			VerifyAccessToken(TestToken).
+			VerifyAccessToken(gomock.Any(), TestToken).
 			Return(nil, &cerror.CustomError{
 				HttpStatusCode: fiber.StatusUnauthorized,
 				LogMessage:     "invalid token",
 				LogSeverity:    zapcore.ErrorLevel,
 			})
 
-		userHandler := NewHandler(mockUserService, nil)
-		srv := server.NewServer(&config.Config{}, nil)
-		app := srv.GetFiberInstance()
-		app.Get("/test", userHandler.AuthenticationMiddleware, func(ctx *fiber.Ctx) error {
+		h := NewHandler(mockservice, nil)
+
+		app := fiber.New(fiber.Config{
+			ErrorHandler: cerror.Middleware,
+		})
+		app.Get("/test", h.AuthenticationMiddleware, func(ctx *fiber.Ctx) error {
 			return ctx.SendStatus(fiber.StatusOK)
 		})
 
-		go srv.Start()
-		defer srv.Shutdown()
+		go app.Listen(":8080")
+		defer app.Shutdown()
 
 		req := httptest.NewRequest(fiber.MethodGet, "/test", nil)
 		req.Header.Set(fiber.HeaderAuthorization, fmt.Sprintf("Bearer %s", TestToken))
@@ -142,17 +137,17 @@ func TestHandler_Register(t *testing.T) {
 	defer mockController.Finish()
 
 	t.Run("happy path", func(t *testing.T) {
-		app := fiber.New()
-
 		mockUserRepository := NewMockRepository(mockController)
-		mockUserRepository.EXPECT().Register(&TestUserModel).
+		mockUserRepository.EXPECT().Register(gomock.Any(), &TestUserModel).
 			Return(&jwt_generator.Tokens{
 				AccessToken:  TestToken,
 				RefreshToken: TestToken,
 			}, nil)
 
-		userHandler := NewHandler(nil, mockUserRepository)
-		userHandler.RegisterRoutes(app)
+		h := NewHandler(nil, mockUserRepository)
+
+		app := fiber.New()
+		app.Post("/register", h.Register)
 
 		reqBody, err := json.Marshal(&TestUserModel)
 		require.NoError(t, err)
@@ -178,12 +173,12 @@ func TestHandler_Register(t *testing.T) {
 	})
 
 	t.Run("error occurred while parsing body", func(t *testing.T) {
+		h := NewHandler(nil, nil)
+
 		app := fiber.New(fiber.Config{
 			ErrorHandler: cerror.Middleware,
 		})
-
-		userHandler := NewHandler(nil, nil)
-		userHandler.RegisterRoutes(app)
+		app.Post("/register", h.Register)
 
 		req := httptest.NewRequest(fiber.MethodPost, "/register", strings.NewReader(`"invalid":"body"`))
 		req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
@@ -197,12 +192,12 @@ func TestHandler_Register(t *testing.T) {
 
 	t.Run("validation", func(t *testing.T) {
 		t.Run("name", func(t *testing.T) {
+			h := NewHandler(nil, nil)
+
 			app := fiber.New(fiber.Config{
 				ErrorHandler: cerror.Middleware,
 			})
-
-			userHandler := NewHandler(nil, nil)
-			userHandler.RegisterRoutes(app)
+			app.Post("/register", h.Register)
 
 			reqBody, err := json.Marshal(&RegisterPayload{
 				Name:     "",
@@ -229,12 +224,12 @@ func TestHandler_Register(t *testing.T) {
 		})
 
 		t.Run("email", func(t *testing.T) {
+			h := NewHandler(nil, nil)
+
 			app := fiber.New(fiber.Config{
 				ErrorHandler: cerror.Middleware,
 			})
-
-			userHandler := NewHandler(nil, nil)
-			userHandler.RegisterRoutes(app)
+			app.Post("/register", h.Register)
 
 			reqBody, err := json.Marshal(&RegisterPayload{
 				Name:     TestUserName,
@@ -261,12 +256,12 @@ func TestHandler_Register(t *testing.T) {
 		})
 
 		t.Run("password", func(t *testing.T) {
+			h := NewHandler(nil, nil)
+
 			app := fiber.New(fiber.Config{
 				ErrorHandler: cerror.Middleware,
 			})
-
-			userHandler := NewHandler(nil, nil)
-			userHandler.RegisterRoutes(app)
+			app.Post("/register", h.Register)
 
 			reqBody, err := json.Marshal(&RegisterPayload{
 				Name:     TestUserName,
@@ -294,20 +289,20 @@ func TestHandler_Register(t *testing.T) {
 	})
 
 	t.Run("error occurred while registering user", func(t *testing.T) {
-		app := fiber.New(fiber.Config{
-			ErrorHandler: cerror.Middleware,
-		})
-
 		mockUserRepository := NewMockRepository(mockController)
-		mockUserRepository.EXPECT().Register(&TestUserModel).
+		mockUserRepository.EXPECT().Register(gomock.Any(), &TestUserModel).
 			Return(nil, &cerror.CustomError{
 				HttpStatusCode: http.StatusInternalServerError,
 				LogMessage:     "error occurred while registering user",
 				LogSeverity:    zapcore.ErrorLevel,
 			})
 
-		userHandler := NewHandler(nil, mockUserRepository)
-		userHandler.RegisterRoutes(app)
+		h := NewHandler(nil, mockUserRepository)
+
+		app := fiber.New(fiber.Config{
+			ErrorHandler: cerror.Middleware,
+		})
+		app.Post("/register", h.Register)
 
 		reqBody, err := json.Marshal(&TestUserModel)
 		require.NoError(t, err)
@@ -340,17 +335,17 @@ func TestHandler_Login(t *testing.T) {
 	defer mockController.Finish()
 
 	t.Run("happy path", func(t *testing.T) {
-		app := fiber.New()
-
 		mockUserRepository := NewMockRepository(mockController)
-		mockUserRepository.EXPECT().Login(&TestUserModel).Return(
+		mockUserRepository.EXPECT().Login(gomock.Any(), &TestUserModel).Return(
 			&jwt_generator.Tokens{
 				AccessToken:  TestToken,
 				RefreshToken: TestToken,
 			}, nil)
 
-		userHandler := NewHandler(nil, mockUserRepository)
-		userHandler.RegisterRoutes(app)
+		h := NewHandler(nil, mockUserRepository)
+
+		app := fiber.New()
+		app.Post("/login", h.Login)
 
 		reqBody, err := json.Marshal(&TestUserModel)
 		require.NoError(t, err)
@@ -377,12 +372,12 @@ func TestHandler_Login(t *testing.T) {
 
 	t.Run("validation", func(t *testing.T) {
 		t.Run("email", func(t *testing.T) {
+			h := NewHandler(nil, nil)
+
 			app := fiber.New(fiber.Config{
 				ErrorHandler: cerror.Middleware,
 			})
-
-			userHandler := NewHandler(nil, nil)
-			userHandler.RegisterRoutes(app)
+			app.Post("/login", h.Login)
 
 			reqBody, err := json.Marshal(&LoginPayload{
 				Email: "invalid-email",
@@ -407,12 +402,12 @@ func TestHandler_Login(t *testing.T) {
 		})
 
 		t.Run("password", func(t *testing.T) {
+			h := NewHandler(nil, nil)
+
 			app := fiber.New(fiber.Config{
 				ErrorHandler: cerror.Middleware,
 			})
-
-			userHandler := NewHandler(nil, nil)
-			userHandler.RegisterRoutes(app)
+			app.Post("/login", h.Login)
 
 			reqBody, err := json.Marshal(&LoginPayload{
 				Password: "123",
@@ -438,20 +433,20 @@ func TestHandler_Login(t *testing.T) {
 	})
 
 	t.Run("when user repository return error should return it", func(t *testing.T) {
-		app := fiber.New(fiber.Config{
-			ErrorHandler: cerror.Middleware,
-		})
-
 		mockUserRepository := NewMockRepository(mockController)
-		mockUserRepository.EXPECT().Login(&TestUserModel).Return(
+		mockUserRepository.EXPECT().Login(gomock.Any(), &TestUserModel).Return(
 			nil, &cerror.CustomError{
 				HttpStatusCode: fiber.StatusUnauthorized,
 				LogMessage:     "invalid credentials",
 				LogSeverity:    zapcore.WarnLevel,
 			})
 
-		userHandler := NewHandler(nil, mockUserRepository)
-		userHandler.RegisterRoutes(app)
+		h := NewHandler(nil, mockUserRepository)
+
+		app := fiber.New(fiber.Config{
+			ErrorHandler: cerror.Middleware,
+		})
+		app.Post("/login", h.Login)
 
 		reqBody, err := json.Marshal(&TestUserModel)
 		require.NoError(t, err)
@@ -479,16 +474,20 @@ func TestHandler_GetAccessTokenByRefreshToken(t *testing.T) {
 	defer mockController.Finish()
 
 	t.Run("happy path", func(t *testing.T) {
-		app := fiber.New()
-
-		mockUserService := NewMockService(mockController)
-		mockUserService.EXPECT().VerifyAccessToken(TestToken).Return(TestJwtClaims, nil)
+		mockservice := NewMockService(mockController)
+		mockservice.EXPECT().VerifyAccessToken(gomock.Any(), TestToken).Return(TestJwtClaims, nil)
 
 		mockUserRepository := NewMockRepository(mockController)
-		mockUserRepository.EXPECT().GetAccessTokenByRefreshToken(TestUserId, TestToken).Return(TestToken, nil)
+		mockUserRepository.EXPECT().GetAccessTokenViaRefreshToken(gomock.Any(), TestUserId, TestToken).Return(TestToken, nil)
 
-		userHandler := NewHandler(mockUserService, mockUserRepository)
-		userHandler.RegisterRoutes(app)
+		h := NewHandler(mockservice, mockUserRepository)
+
+		app := fiber.New()
+		app.Get(
+			"/user/refreshToken/:refreshToken",
+			h.AuthenticationMiddleware,
+			h.GetAccessTokenViaRefreshToken,
+		)
 
 		reqUrl := fmt.Sprintf("/user/refreshToken/%s", TestToken)
 		req := httptest.NewRequest(fiber.MethodGet, reqUrl, nil)
@@ -509,15 +508,19 @@ func TestHandler_GetAccessTokenByRefreshToken(t *testing.T) {
 	})
 
 	t.Run("invalid refresh token", func(t *testing.T) {
+		mockservice := NewMockService(mockController)
+		mockservice.EXPECT().VerifyAccessToken(gomock.Any(), TestToken).Return(TestJwtClaims, nil)
+
+		h := NewHandler(mockservice, nil)
+
 		app := fiber.New(fiber.Config{
 			ErrorHandler: cerror.Middleware,
 		})
-
-		mockUserService := NewMockService(mockController)
-		mockUserService.EXPECT().VerifyAccessToken(TestToken).Return(TestJwtClaims, nil)
-
-		userHandler := NewHandler(mockUserService, nil)
-		userHandler.RegisterRoutes(app)
+		app.Get(
+			"/user/refreshToken/:refreshToken",
+			h.AuthenticationMiddleware,
+			h.GetAccessTokenViaRefreshToken,
+		)
 
 		reqUrl := fmt.Sprintf("/user/refreshToken/%s", "invalid-token")
 		req := httptest.NewRequest(fiber.MethodGet, reqUrl, nil)
@@ -538,15 +541,11 @@ func TestHandler_GetAccessTokenByRefreshToken(t *testing.T) {
 	})
 
 	t.Run("when user repository return error should return it", func(t *testing.T) {
-		app := fiber.New(fiber.Config{
-			ErrorHandler: cerror.Middleware,
-		})
-
-		mockUserService := NewMockService(mockController)
-		mockUserService.EXPECT().VerifyAccessToken(TestToken).Return(TestJwtClaims, nil)
+		mockservice := NewMockService(mockController)
+		mockservice.EXPECT().VerifyAccessToken(gomock.Any(), TestToken).Return(TestJwtClaims, nil)
 
 		mockUserRepository := NewMockRepository(mockController)
-		mockUserRepository.EXPECT().GetAccessTokenByRefreshToken(TestUserId, TestToken).Return(
+		mockUserRepository.EXPECT().GetAccessTokenViaRefreshToken(gomock.Any(), TestUserId, TestToken).Return(
 			"",
 			&cerror.CustomError{
 				HttpStatusCode: fiber.StatusUnauthorized,
@@ -554,8 +553,16 @@ func TestHandler_GetAccessTokenByRefreshToken(t *testing.T) {
 				LogSeverity:    zapcore.WarnLevel,
 			})
 
-		userHandler := NewHandler(mockUserService, mockUserRepository)
-		userHandler.RegisterRoutes(app)
+		h := NewHandler(mockservice, mockUserRepository)
+
+		app := fiber.New(fiber.Config{
+			ErrorHandler: cerror.Middleware,
+		})
+		app.Get(
+			"/user/refreshToken/:refreshToken",
+			h.AuthenticationMiddleware,
+			h.GetAccessTokenViaRefreshToken,
+		)
 
 		reqUrl := fmt.Sprintf("/user/refreshToken/%s", TestToken)
 		req := httptest.NewRequest(fiber.MethodGet, reqUrl, nil)
@@ -587,21 +594,19 @@ func TestHandler_UpdateUserById(t *testing.T) {
 	defer mockController.Finish()
 
 	t.Run("happy path", func(t *testing.T) {
-		app := fiber.New(fiber.Config{
-			ErrorHandler: cerror.Middleware,
-		})
-
-		mockUserService := NewMockService(mockController)
-		mockUserService.EXPECT().VerifyAccessToken(TestToken).Return(TestJwtClaims, nil)
+		mockservice := NewMockService(mockController)
+		mockservice.EXPECT().VerifyAccessToken(gomock.Any(), TestToken).Return(TestJwtClaims, nil)
 
 		mockUserRepository := NewMockRepository(mockController)
-		mockUserRepository.EXPECT().UpdateUserById(TestUserId, TestUserModel).Return(&jwt_generator.Tokens{
+		mockUserRepository.EXPECT().UpdateUserById(gomock.Any(), TestUserId, TestUserModel).Return(&jwt_generator.Tokens{
 			AccessToken:  TestToken,
 			RefreshToken: TestToken,
 		}, nil)
 
-		userHandler := NewHandler(mockUserService, mockUserRepository)
-		userHandler.RegisterRoutes(app)
+		h := NewHandler(mockservice, mockUserRepository)
+
+		app := fiber.New()
+		app.Patch("/user", h.AuthenticationMiddleware, h.UpdateUserById)
 
 		reqBody, err := json.Marshal(&TestUserModel)
 		require.NoError(t, err)
@@ -627,15 +632,15 @@ func TestHandler_UpdateUserById(t *testing.T) {
 	})
 
 	t.Run("parse request body error", func(t *testing.T) {
+		mockservice := NewMockService(mockController)
+		mockservice.EXPECT().VerifyAccessToken(gomock.Any(), TestToken).Return(TestJwtClaims, nil)
+
+		h := NewHandler(mockservice, nil)
+
 		app := fiber.New(fiber.Config{
 			ErrorHandler: cerror.Middleware,
 		})
-
-		mockUserService := NewMockService(mockController)
-		mockUserService.EXPECT().VerifyAccessToken(TestToken).Return(TestJwtClaims, nil)
-
-		userHandler := NewHandler(mockUserService, nil)
-		userHandler.RegisterRoutes(app)
+		app.Patch("/user", h.AuthenticationMiddleware, h.UpdateUserById)
 
 		req := httptest.NewRequest(fiber.MethodPatch, "/user", strings.NewReader(`"name": "test"`))
 		req.Header.Set(fiber.HeaderAuthorization, fmt.Sprintf("Bearer %s", TestToken))
@@ -656,15 +661,15 @@ func TestHandler_UpdateUserById(t *testing.T) {
 
 	t.Run("validation", func(t *testing.T) {
 		t.Run("empty values", func(t *testing.T) {
+			mockservice := NewMockService(mockController)
+			mockservice.EXPECT().VerifyAccessToken(gomock.Any(), TestToken).Return(TestJwtClaims, nil)
+
+			h := NewHandler(mockservice, nil)
+
 			app := fiber.New(fiber.Config{
 				ErrorHandler: cerror.Middleware,
 			})
-
-			mockUserService := NewMockService(mockController)
-			mockUserService.EXPECT().VerifyAccessToken(TestToken).Return(TestJwtClaims, nil)
-
-			userHandler := NewHandler(mockUserService, nil)
-			userHandler.RegisterRoutes(app)
+			app.Patch("/user", h.AuthenticationMiddleware, h.UpdateUserById)
 
 			reqBody, err := json.Marshal(&UpdateUserPayload{
 				Name:     "",
@@ -690,15 +695,15 @@ func TestHandler_UpdateUserById(t *testing.T) {
 		})
 
 		t.Run("invalid email", func(t *testing.T) {
+			mockservice := NewMockService(mockController)
+			mockservice.EXPECT().VerifyAccessToken(gomock.Any(), TestToken).Return(TestJwtClaims, nil)
+
+			h := NewHandler(mockservice, nil)
+
 			app := fiber.New(fiber.Config{
 				ErrorHandler: cerror.Middleware,
 			})
-
-			mockUserService := NewMockService(mockController)
-			mockUserService.EXPECT().VerifyAccessToken(TestToken).Return(TestJwtClaims, nil)
-
-			userHandler := NewHandler(mockUserService, nil)
-			userHandler.RegisterRoutes(app)
+			app.Patch("/user", h.AuthenticationMiddleware, h.UpdateUserById)
 
 			reqBody, err := json.Marshal(&UpdateUserPayload{
 				Email: "invalid",
@@ -723,15 +728,15 @@ func TestHandler_UpdateUserById(t *testing.T) {
 		})
 
 		t.Run("invalid password", func(t *testing.T) {
+			mockservice := NewMockService(mockController)
+			mockservice.EXPECT().VerifyAccessToken(gomock.Any(), TestToken).Return(TestJwtClaims, nil)
+
+			h := NewHandler(mockservice, nil)
+
 			app := fiber.New(fiber.Config{
 				ErrorHandler: cerror.Middleware,
 			})
-
-			mockUserService := NewMockService(mockController)
-			mockUserService.EXPECT().VerifyAccessToken(TestToken).Return(TestJwtClaims, nil)
-
-			userHandler := NewHandler(mockUserService, nil)
-			userHandler.RegisterRoutes(app)
+			app.Patch("/user", h.AuthenticationMiddleware, h.UpdateUserById)
 
 			reqBody, err := json.Marshal(&UpdateUserPayload{
 				Password: "123",
@@ -757,22 +762,22 @@ func TestHandler_UpdateUserById(t *testing.T) {
 	})
 
 	t.Run("when user repository return error return it", func(t *testing.T) {
-		app := fiber.New(fiber.Config{
-			ErrorHandler: cerror.Middleware,
-		})
-
-		mockUserService := NewMockService(mockController)
-		mockUserService.EXPECT().VerifyAccessToken(TestToken).Return(TestJwtClaims, nil)
+		mockservice := NewMockService(mockController)
+		mockservice.EXPECT().VerifyAccessToken(gomock.Any(), TestToken).Return(TestJwtClaims, nil)
 
 		mockUserRepository := NewMockRepository(mockController)
-		mockUserRepository.EXPECT().UpdateUserById(TestUserId, TestUserModel).Return(nil, &cerror.CustomError{
+		mockUserRepository.EXPECT().UpdateUserById(gomock.Any(), TestUserId, TestUserModel).Return(nil, &cerror.CustomError{
 			HttpStatusCode: fiber.StatusConflict,
 			LogMessage:     "already exists",
 			LogSeverity:    zapcore.WarnLevel,
 		})
 
-		userHandler := NewHandler(mockUserService, mockUserRepository)
-		userHandler.RegisterRoutes(app)
+		h := NewHandler(mockservice, mockUserRepository)
+
+		app := fiber.New(fiber.Config{
+			ErrorHandler: cerror.Middleware,
+		})
+		app.Patch("/user", h.AuthenticationMiddleware, h.UpdateUserById)
 
 		reqBody, err := json.Marshal(&TestUserModel)
 		require.NoError(t, err)

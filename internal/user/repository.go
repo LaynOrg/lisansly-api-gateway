@@ -1,77 +1,84 @@
 package user
 
 import (
-	"net/url"
-	"time"
+	"context"
+	"errors"
+	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/lambda"
+	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
+	"api-gateway/pkg/aws_wrapper"
 	"api-gateway/pkg/cerror"
 	"api-gateway/pkg/config"
 	"api-gateway/pkg/jwt_generator"
 )
 
-type repository struct {
-	config *config.Config
-}
-
 type Repository interface {
-	GetUserById(userId string) (*Document, error)
-	Register(user *RegisterPayload) (*jwt_generator.Tokens, error)
-	Login(user *LoginPayload) (*jwt_generator.Tokens, error)
-	GetAccessTokenByRefreshToken(userId, refreshToken string) (string, error)
-	UpdateUserById(userId string, user *UpdateUserPayload) (*jwt_generator.Tokens, error)
+	Register(ctx context.Context, user *RegisterPayload) (*jwt_generator.Tokens, error)
+	Login(ctx context.Context, user *LoginPayload) (*jwt_generator.Tokens, error)
+	GetUserById(ctx context.Context, userId string) (*Document, error)
+	GetAccessTokenViaRefreshToken(ctx context.Context, userId, refreshToken string) (string, error)
+	UpdateUserById(ctx context.Context, userId string, user *UpdateUserPayload) (*jwt_generator.Tokens, error)
 }
 
-func NewRepository(config *config.Config) Repository {
+type repository struct {
+	lambdaClient aws_wrapper.LambdaClient
+	config       *config.Config
+}
+
+func NewRepository(lambdaClient aws_wrapper.LambdaClient, config *config.Config) Repository {
 	return &repository{
-		config: config,
+		lambdaClient: lambdaClient,
+		config:       config,
 	}
 }
 
-func (r *repository) GetUserById(userId string) (*Document, error) {
+func (r *repository) GetUserById(ctx context.Context, userId string) (*Document, error) {
 	var err error
 
-	agent := fiber.AcquireAgent()
-	agent.Timeout(10 * time.Second)
-	req := agent.Request()
-	req.Header.SetMethod(fiber.MethodGet)
-	req.Header.Set(fiber.HeaderAccept, fiber.MIMEApplicationJSON)
-	req.Header.SetUserAgent(RequestUserAgent)
-
-	pathParam, _ := url.JoinPath("user", userId)
-	urlBuilder := &url.URL{
-		Scheme: r.config.UserApiUrl.Scheme,
-		Host:   r.config.UserApiUrl.Host,
-		Path:   pathParam,
-	}
-	requestUrl := urlBuilder.String()
-	req.SetRequestURI(requestUrl)
-
-	err = agent.Parse()
+	var requestPayload []byte
+	requestPayload, err = json.Marshal(map[string]any{
+		"userId": userId,
+	})
 	if err != nil {
-		return nil, &cerror.CustomError{
-			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while parse request",
-			LogSeverity:    zapcore.ErrorLevel,
+		cerr := cerror.ErrorMarshalling
+		cerr.LogFields = []zap.Field{
+			zap.Error(err),
 		}
+
+		return nil, cerr
 	}
 
-	statusCode, body, errs := agent.Bytes()
-	if len(errs) > 0 {
-		return nil, &cerror.CustomError{
-			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while make request",
-			LogSeverity:    zapcore.ErrorLevel,
-			LogFields: []zap.Field{
-				zap.Errors("errors", errs),
-			},
+	lambdaFunctionName := r.config.FunctionNames.UserAPI[config.GetUserById]
+
+	var response *lambda.InvokeOutput
+	response, err = r.lambdaClient.Invoke(ctx, &lambda.InvokeInput{
+		FunctionName:   aws.String(lambdaFunctionName),
+		InvocationType: types.InvocationTypeRequestResponse,
+		Payload:        requestPayload,
+	})
+	if err != nil {
+		var cerr *cerror.CustomError
+		ok := errors.As(err, &cerr)
+		if ok {
+			return nil, cerr
 		}
+
+		cerr = cerror.ErrorFunctionInvoke
+		cerr.LogMessage = fmt.Sprintf(cerr.LogMessage, config.GetUserById)
+		cerr.LogFields = []zap.Field{
+			zap.Error(err),
+		}
+		return nil, cerr
 	}
 
+	statusCode := response.StatusCode
 	if statusCode == fiber.StatusNotFound {
 		return nil, &cerror.CustomError{
 			HttpStatusCode: fiber.StatusNotFound,
@@ -82,261 +89,252 @@ func (r *repository) GetUserById(userId string) (*Document, error) {
 
 	if statusCode != fiber.StatusOK {
 		return nil, &cerror.CustomError{
-			HttpStatusCode: statusCode,
+			HttpStatusCode: int(statusCode),
 			LogMessage:     "user-api return error",
 			LogSeverity:    zapcore.ErrorLevel,
 		}
 	}
 
 	var user *Document
-	err = json.Unmarshal(body, &user)
+	err = json.Unmarshal(response.Payload, &user)
 	if err != nil {
-		return nil, &cerror.CustomError{
-			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while unmarshal response body",
-			LogSeverity:    zapcore.ErrorLevel,
-			LogFields: []zap.Field{
-				zap.Error(err),
-			},
+		cerr := cerror.ErrorUnmarshalling
+		cerr.LogFields = []zap.Field{
+			zap.Error(err),
 		}
+
+		return nil, cerr
 	}
 
 	return user, nil
 }
 
-func (r *repository) Register(user *RegisterPayload) (*jwt_generator.Tokens, error) {
+func (r *repository) Register(ctx context.Context, user *RegisterPayload) (*jwt_generator.Tokens, error) {
 	var err error
 
-	agent := fiber.AcquireAgent()
-	agent.Timeout(10 * time.Second)
-	req := agent.Request()
-	req.Header.SetMethod(fiber.MethodPost)
-	req.Header.SetContentType(fiber.MIMEApplicationJSON)
-	req.Header.Set(fiber.HeaderAccept, fiber.MIMEApplicationJSON)
-	req.Header.SetUserAgent(RequestUserAgent)
-
-	var requestBody []byte
-	requestBody, _ = json.Marshal(user)
-	req.SetBody(requestBody)
-
-	urlBuilder := &url.URL{
-		Scheme: r.config.UserApiUrl.Scheme,
-		Host:   r.config.UserApiUrl.Host,
-		Path:   "user",
-	}
-	requestUrl := urlBuilder.String()
-	req.SetRequestURI(requestUrl)
-
-	err = agent.Parse()
+	var requestPayload []byte
+	requestPayload, err = json.Marshal(user)
 	if err != nil {
-		return nil, &cerror.CustomError{
-			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while parse request",
-			LogSeverity:    zapcore.ErrorLevel,
+		cerr := cerror.ErrorMarshalling
+		cerr.LogFields = []zap.Field{
+			zap.Error(err),
 		}
+
+		return nil, cerr
 	}
 
-	statusCode, body, errs := agent.Bytes()
-	if len(errs) > 0 {
-		return nil, &cerror.CustomError{
-			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while make request",
-			LogSeverity:    zapcore.ErrorLevel,
-			LogFields: []zap.Field{
-				zap.Errors("errors", errs),
-			},
+	lambdaFunctionName := r.config.FunctionNames.UserAPI[config.Register]
+
+	var response *lambda.InvokeOutput
+	response, err = r.lambdaClient.Invoke(ctx, &lambda.InvokeInput{
+		FunctionName:   aws.String(lambdaFunctionName),
+		InvocationType: types.InvocationTypeRequestResponse,
+		Payload:        requestPayload,
+	})
+	if err != nil {
+		var cerr *cerror.CustomError
+		ok := errors.As(err, &cerr)
+		if ok {
+			return nil, cerr
 		}
+
+		cerr = cerror.ErrorFunctionInvoke
+		cerr.LogMessage = fmt.Sprintf(cerr.LogMessage, config.Register)
+		cerr.LogFields = []zap.Field{
+			zap.Error(err),
+		}
+
+		return nil, cerr
 	}
 
-	if statusCode != fiber.StatusCreated {
+	if response.StatusCode != fiber.StatusCreated {
 		return nil, &cerror.CustomError{
-			HttpStatusCode: statusCode,
+			HttpStatusCode: int(response.StatusCode),
 			LogMessage:     "user-api return error",
 			LogSeverity:    zapcore.ErrorLevel,
 		}
 	}
 
 	var tokens *jwt_generator.Tokens
-	err = json.Unmarshal(body, &tokens)
+	err = json.Unmarshal(response.Payload, &tokens)
 	if err != nil {
-		return nil, &cerror.CustomError{
-			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while unmarshal response body",
-			LogSeverity:    zapcore.ErrorLevel,
+		cerr := cerror.ErrorUnmarshalling
+		cerr.LogFields = []zap.Field{
+			zap.Error(err),
 		}
+
+		return nil, cerr
 	}
 
 	return tokens, nil
 }
 
-func (r *repository) Login(user *LoginPayload) (*jwt_generator.Tokens, error) {
+func (r *repository) Login(ctx context.Context, user *LoginPayload) (*jwt_generator.Tokens, error) {
 	var err error
 
-	agent := fiber.AcquireAgent()
-	agent.Timeout(10 * time.Second)
-	req := agent.Request()
-	req.Header.SetMethod(fiber.MethodPost)
-	req.Header.Set(fiber.HeaderAccept, fiber.MIMEApplicationJSON)
-	req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
-	req.Header.SetUserAgent(RequestUserAgent)
-
-	urlBuilder := &url.URL{
-		Scheme: r.config.UserApiUrl.Scheme,
-		Host:   r.config.UserApiUrl.Host,
-		Path:   "login",
-	}
-	requestUrl := urlBuilder.String()
-	req.SetRequestURI(requestUrl)
-
-	var requestBody []byte
-	requestBody, _ = json.Marshal(user)
-	req.SetBody(requestBody)
-
-	err = agent.Parse()
+	var requestPayload []byte
+	requestPayload, err = json.Marshal(&user)
 	if err != nil {
-		return nil, &cerror.CustomError{
-			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while parse request",
-			LogSeverity:    zapcore.ErrorLevel,
+		cerr := cerror.ErrorMarshalling
+		cerr.LogFields = []zap.Field{
+			zap.Error(err),
 		}
+
+		return nil, cerr
 	}
 
-	statusCode, body, errs := agent.Bytes()
-	if len(errs) > 0 {
-		return nil, &cerror.CustomError{
-			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while make request",
-			LogSeverity:    zapcore.ErrorLevel,
+	lambdaFunctionName := r.config.FunctionNames.UserAPI[config.Login]
+	var response *lambda.InvokeOutput
+	response, err = r.lambdaClient.Invoke(ctx, &lambda.InvokeInput{
+		FunctionName:   aws.String(lambdaFunctionName),
+		InvocationType: types.InvocationTypeRequestResponse,
+		Payload:        requestPayload,
+	})
+	if err != nil {
+		var cerr *cerror.CustomError
+		ok := errors.As(err, &cerr)
+		if ok {
+			return nil, cerr
 		}
+
+		cerr = cerror.ErrorFunctionInvoke
+		cerr.LogMessage = fmt.Sprintf(cerr.LogMessage, config.Login)
+		cerr.LogFields = []zap.Field{
+			zap.Error(err),
+		}
+		return nil, cerr
 	}
 
-	if statusCode != fiber.StatusOK {
+	if response.StatusCode != fiber.StatusOK {
 		return nil, &cerror.CustomError{
-			HttpStatusCode: statusCode,
+			HttpStatusCode: int(response.StatusCode),
 			LogMessage:     "user-api return error",
 			LogSeverity:    zapcore.ErrorLevel,
 		}
 	}
 
 	var tokens *jwt_generator.Tokens
-	err = json.Unmarshal(body, &tokens)
+	err = json.Unmarshal(response.Payload, &tokens)
 	if err != nil {
-		return nil, &cerror.CustomError{
-			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while unmarshal response body",
-			LogSeverity:    zapcore.ErrorLevel,
+		cerr := cerror.ErrorUnmarshalling
+		cerr.LogFields = []zap.Field{
+			zap.Error(err),
 		}
+
+		return nil, cerr
 	}
 
 	return tokens, nil
 }
 
-func (r *repository) GetAccessTokenByRefreshToken(userId, refreshToken string) (string, error) {
+func (r *repository) GetAccessTokenViaRefreshToken(ctx context.Context, userId, refreshToken string) (string, error) {
 	var err error
 
-	agent := fiber.AcquireAgent()
-	agent.Timeout(10 * time.Second)
-	req := agent.Request()
-	req.Header.SetMethod(fiber.MethodGet)
-	req.Header.Set(fiber.HeaderAccept, fiber.MIMEApplicationJSON)
-	req.Header.SetUserAgent(RequestUserAgent)
-
-	pathParams, _ := url.JoinPath("user", userId, "refreshToken", refreshToken)
-	urlBuilder := &url.URL{
-		Scheme: r.config.UserApiUrl.Scheme,
-		Host:   r.config.UserApiUrl.Host,
-		Path:   pathParams,
-	}
-	requestUrl := urlBuilder.String()
-	req.SetRequestURI(requestUrl)
-
-	err = agent.Parse()
+	var requestPayload []byte
+	requestPayload, err = json.Marshal(map[string]any{
+		"userId":       userId,
+		"refreshToken": refreshToken,
+	})
 	if err != nil {
-		return "", &cerror.CustomError{
-			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while parse request",
-			LogSeverity:    zapcore.ErrorLevel,
+		cerr := cerror.ErrorUnmarshalling
+		cerr.LogFields = []zap.Field{
+			zap.Error(err),
 		}
+
+		return "", cerr
 	}
 
-	statusCode, body, errs := agent.Bytes()
-	if len(errs) > 0 {
-		return "", &cerror.CustomError{
-			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while make request",
-			LogSeverity:    zapcore.ErrorLevel,
-			LogFields: []zap.Field{
-				zap.Any("errors", errs),
-			},
+	lambdaFunctionName := r.config.FunctionNames.UserAPI[config.GetAccessTokenViaRefreshToken]
+
+	var response *lambda.InvokeOutput
+	response, err = r.lambdaClient.Invoke(ctx, &lambda.InvokeInput{
+		FunctionName:   aws.String(lambdaFunctionName),
+		InvocationType: types.InvocationTypeRequestResponse,
+		Payload:        requestPayload,
+	})
+	if err != nil {
+		var cerr *cerror.CustomError
+		ok := errors.As(err, &cerr)
+		if ok {
+			return "", cerr
 		}
+
+		cerr = cerror.ErrorFunctionInvoke
+		cerr.LogMessage = fmt.Sprintf(cerr.LogMessage, config.GetAccessTokenViaRefreshToken)
+		cerr.LogFields = []zap.Field{
+			zap.Error(err),
+		}
+
+		return "", cerr
 	}
 
-	if statusCode != fiber.StatusOK {
+	if response.StatusCode != fiber.StatusOK {
 		return "", &cerror.CustomError{
-			HttpStatusCode: statusCode,
+			HttpStatusCode: int(response.StatusCode),
 			LogMessage:     "user-api return error",
 			LogSeverity:    zapcore.ErrorLevel,
 		}
 	}
 
 	var tokens *jwt_generator.Tokens
-	err = json.Unmarshal(body, &tokens)
+	err = json.Unmarshal(response.Payload, &tokens)
 	if err != nil {
-		return "", &cerror.CustomError{
-			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while unmarshal response body",
-			LogSeverity:    zapcore.ErrorLevel,
+		cerr := cerror.ErrorUnmarshalling
+		cerr.LogFields = []zap.Field{
+			zap.Error(err),
 		}
+
+		return "", cerr
 	}
 
 	return tokens.AccessToken, nil
 }
 
-func (r *repository) UpdateUserById(userId string, user *UpdateUserPayload) (*jwt_generator.Tokens, error) {
+func (r *repository) UpdateUserById(
+	ctx context.Context,
+	userId string,
+	user *UpdateUserPayload,
+) (*jwt_generator.Tokens, error) {
 	var err error
 
-	agent := fiber.AcquireAgent()
-	agent.Timeout(10 * time.Second)
-	req := agent.Request()
-	req.Header.SetMethod(fiber.MethodPatch)
-	req.Header.SetContentType(fiber.MIMEApplicationJSON)
-	req.Header.Set(fiber.HeaderAccept, fiber.MIMEApplicationJSON)
-	req.Header.SetUserAgent(RequestUserAgent)
-
-	var requestBody []byte
-	requestBody, _ = json.Marshal(user)
-	req.SetBody(requestBody)
-
-	pathParams, _ := url.JoinPath("user", userId)
-	urlBuilder := &url.URL{
-		Scheme: r.config.UserApiUrl.Scheme,
-		Host:   r.config.UserApiUrl.Host,
-		Path:   pathParams,
-	}
-	requestUrl := urlBuilder.String()
-	req.SetRequestURI(requestUrl)
-
-	err = agent.Parse()
+	var requestPayload []byte
+	requestPayload, err = json.Marshal(map[string]any{
+		"userId": userId,
+		"user":   user,
+	})
 	if err != nil {
-		return nil, &cerror.CustomError{
-			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while parse request",
-			LogSeverity:    zapcore.ErrorLevel,
+		cerr := cerror.ErrorMarshalling
+		cerr.LogFields = []zap.Field{
+			zap.Error(err),
 		}
+
+		return nil, cerr
 	}
 
-	statusCode, body, errs := agent.Bytes()
-	if len(errs) > 0 {
-		return nil, &cerror.CustomError{
-			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while make request",
-			LogSeverity:    zapcore.ErrorLevel,
-			LogFields: []zap.Field{
-				zap.Any("errors", errs),
-			},
+	lambdaFunctionName := r.config.FunctionNames.UserAPI[config.UpdateUserById]
+
+	var response *lambda.InvokeOutput
+	response, err = r.lambdaClient.Invoke(ctx, &lambda.InvokeInput{
+		FunctionName:   aws.String(lambdaFunctionName),
+		InvocationType: types.InvocationTypeRequestResponse,
+		Payload:        requestPayload,
+	})
+	if err != nil {
+		var cerr *cerror.CustomError
+		ok := errors.As(err, &cerr)
+		if ok {
+			return nil, cerr
 		}
+
+		cerr = cerror.ErrorFunctionInvoke
+		cerr.LogMessage = fmt.Sprintf(cerr.LogMessage, config.UpdateUserById)
+		cerr.LogFields = []zap.Field{
+			zap.Error(err),
+		}
+		return nil, cerr
 	}
 
+	statusCode := response.StatusCode
 	if statusCode == fiber.StatusConflict {
 		return nil, &cerror.CustomError{
 			HttpStatusCode: fiber.StatusConflict,
@@ -347,20 +345,21 @@ func (r *repository) UpdateUserById(userId string, user *UpdateUserPayload) (*jw
 
 	if statusCode != fiber.StatusOK {
 		return nil, &cerror.CustomError{
-			HttpStatusCode: statusCode,
+			HttpStatusCode: int(statusCode),
 			LogMessage:     "user-api return error",
 			LogSeverity:    zapcore.ErrorLevel,
 		}
 	}
 
 	var tokens *jwt_generator.Tokens
-	err = json.Unmarshal(body, &tokens)
+	err = json.Unmarshal(response.Payload, &tokens)
 	if err != nil {
-		return nil, &cerror.CustomError{
-			HttpStatusCode: fiber.StatusInternalServerError,
-			LogMessage:     "error occurred while unmarshal response body",
-			LogSeverity:    zapcore.ErrorLevel,
+		cerr := cerror.ErrorUnmarshalling
+		cerr.LogFields = []zap.Field{
+			zap.Error(err),
 		}
+
+		return nil, cerr
 	}
 
 	return tokens, nil

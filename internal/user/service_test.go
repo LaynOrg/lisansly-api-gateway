@@ -3,15 +3,16 @@
 package user
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zapcore"
 
 	"api-gateway/pkg/cerror"
@@ -34,8 +35,8 @@ var (
 )
 
 func TestNewService(t *testing.T) {
-	userService := NewService(nil, nil)
-	assert.Implements(t, (*Service)(nil), userService)
+	service := NewService(nil, nil)
+	assert.Implements(t, (*Service)(nil), service)
 }
 
 func TestService_VerifyAccessToken(t *testing.T) {
@@ -43,6 +44,7 @@ func TestService_VerifyAccessToken(t *testing.T) {
 	defer mockController.Finish()
 
 	t.Run("happy path", func(t *testing.T) {
+		ctx := context.Background()
 		mockJwtGenerator := jwt_generator.NewMockJwtGenerator(mockController)
 		mockUserRepository := NewMockRepository(mockController)
 		mockJwtGenerator.
@@ -51,7 +53,7 @@ func TestService_VerifyAccessToken(t *testing.T) {
 			Return(TestJwtClaims, nil)
 		mockUserRepository.
 			EXPECT().
-			GetUserById(TestUserId).
+			GetUserById(ctx, TestUserId).
 			Return(&Document{
 				Id:        TestUserId,
 				Name:      TestUserName,
@@ -61,28 +63,30 @@ func TestService_VerifyAccessToken(t *testing.T) {
 				CreatedAt: time.Now().UTC(),
 			}, nil)
 
-		userService := NewService(mockJwtGenerator, mockUserRepository)
-		jwtClaims, err := userService.VerifyAccessToken(TestToken)
+		service := NewService(mockJwtGenerator, mockUserRepository)
+		jwtClaims, err := service.VerifyAccessToken(ctx, TestToken)
 
 		assert.NoError(t, err)
 		assert.Equal(t, TestJwtClaims, jwtClaims)
 	})
 
 	t.Run("when token is invalid should return error", func(t *testing.T) {
+		ctx := context.Background()
 		mockJwtGenerator := jwt_generator.NewMockJwtGenerator(mockController)
 		mockJwtGenerator.
 			EXPECT().
 			VerifyAccessToken(TestToken).
 			Return(nil, errors.New("invalid token"))
 
-		userService := NewService(mockJwtGenerator, nil)
-		jwtClaims, err := userService.VerifyAccessToken(TestToken)
+		service := NewService(mockJwtGenerator, nil)
+		jwtClaims, err := service.VerifyAccessToken(ctx, TestToken)
 
 		assert.Error(t, err)
 		assert.Empty(t, jwtClaims)
 	})
 
 	t.Run("when user is not found should return error", func(t *testing.T) {
+		ctx := context.Background()
 		mockJwtGenerator := jwt_generator.NewMockJwtGenerator(mockController)
 		mockUserRepository := NewMockRepository(mockController)
 		mockJwtGenerator.
@@ -91,21 +95,22 @@ func TestService_VerifyAccessToken(t *testing.T) {
 			Return(TestJwtClaims, nil)
 		mockUserRepository.
 			EXPECT().
-			GetUserById(TestUserId).
+			GetUserById(ctx, TestUserId).
 			Return(nil, &cerror.CustomError{
 				HttpStatusCode: fiber.StatusNotFound,
 				LogMessage:     "user not found",
 				LogSeverity:    zapcore.WarnLevel,
 			})
 
-		userService := NewService(mockJwtGenerator, mockUserRepository)
-		jwtClaims, err := userService.VerifyAccessToken(TestToken)
+		service := NewService(mockJwtGenerator, mockUserRepository)
+		jwtClaims, err := service.VerifyAccessToken(ctx, TestToken)
 
 		assert.Error(t, err)
 		assert.Empty(t, jwtClaims)
 	})
 
 	t.Run("when user repository method return error should return it", func(t *testing.T) {
+		ctx := context.Background()
 		mockJwtGenerator := jwt_generator.NewMockJwtGenerator(mockController)
 		mockUserRepository := NewMockRepository(mockController)
 		mockJwtGenerator.
@@ -114,15 +119,15 @@ func TestService_VerifyAccessToken(t *testing.T) {
 			Return(TestJwtClaims, nil)
 		mockUserRepository.
 			EXPECT().
-			GetUserById(TestUserId).
+			GetUserById(ctx, TestUserId).
 			Return(nil, &cerror.CustomError{
 				HttpStatusCode: fiber.StatusInternalServerError,
 				LogMessage:     "user-api error",
 				LogSeverity:    zapcore.ErrorLevel,
 			})
 
-		userService := NewService(mockJwtGenerator, mockUserRepository)
-		jwtClaims, err := userService.VerifyAccessToken(TestToken)
+		service := NewService(mockJwtGenerator, mockUserRepository)
+		jwtClaims, err := service.VerifyAccessToken(ctx, TestToken)
 
 		assert.Error(t, err)
 		assert.Empty(t, jwtClaims)

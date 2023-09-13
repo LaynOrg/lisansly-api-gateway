@@ -1,38 +1,23 @@
 package config
 
 import (
-	"errors"
 	"fmt"
-	"net/url"
 	"os"
 	"strings"
-
-	"github.com/kr/pretty"
 )
 
 type Config struct {
-	ServerPort string
-	UserApiUrl *url.URL
-	Jwt        *JwtConfig
+	FunctionNames *FunctionNames
+	Jwt           *JwtConfig
 }
 
 func ReadConfig() (*Config, error) {
 	var err error
 
-	serverPort := os.Getenv(ServerPort)
-	if serverPort == "" {
-		serverPort = "8080"
-	}
-
-	rawUserApiUrl := os.Getenv(UserApiUrl)
-	if rawUserApiUrl == "" {
-		return nil, fmt.Errorf(EnvironmentVariableNotDefined, UserApiUrl)
-	}
-
-	var userApiUrl *url.URL
-	userApiUrl, err = url.ParseRequestURI(rawUserApiUrl)
+	var userApiCfg map[UserApiFunctionNames]string
+	userApiCfg, err = ReadUserApiConfig()
 	if err != nil {
-		return nil, errors.New("invalid user api url")
+		return nil, err
 	}
 
 	var jwtConfig *JwtConfig
@@ -42,22 +27,58 @@ func ReadConfig() (*Config, error) {
 	}
 
 	return &Config{
-		ServerPort: serverPort,
-		UserApiUrl: userApiUrl,
-		Jwt:        jwtConfig,
+		FunctionNames: &FunctionNames{
+			UserAPI: userApiCfg,
+		},
+		Jwt: jwtConfig,
+	}, nil
+}
+
+func ReadUserApiConfig() (map[UserApiFunctionNames]string, error) {
+	getUserByIdFunctionName := os.Getenv(EnvironmentVariableGetUserByIdFunctionName)
+	if getUserByIdFunctionName == "" {
+		return nil, fmt.Errorf(EnvironmentVariableNotDefined, EnvironmentVariableGetUserByIdFunctionName)
+	}
+
+	registerFunctionName := os.Getenv(EnvironmentVariableRegisterFunctionName)
+	if registerFunctionName == "" {
+		return nil, fmt.Errorf(EnvironmentVariableNotDefined, EnvironmentVariableRegisterFunctionName)
+	}
+
+	loginFunctionName := os.Getenv(EnvironmentVariableLoginFunctionName)
+	if loginFunctionName == "" {
+		return nil, fmt.Errorf(EnvironmentVariableNotDefined, EnvironmentVariableLoginFunctionName)
+	}
+
+	getAccessTokenViaRefreshTokenFunctionName := os.Getenv(EnvironmentVariableGetAccessTokenViaRefreshTokenFunctionName)
+	if getAccessTokenViaRefreshTokenFunctionName == "" {
+		return nil, fmt.Errorf(EnvironmentVariableNotDefined, EnvironmentVariableGetAccessTokenViaRefreshTokenFunctionName)
+	}
+
+	updateUserByIdFunctionName := os.Getenv(EnvironmentVariableUpdateUserByIdFunctionName)
+	if updateUserByIdFunctionName == "" {
+		return nil, fmt.Errorf(EnvironmentVariableNotDefined, EnvironmentVariableUpdateUserByIdFunctionName)
+	}
+
+	return map[UserApiFunctionNames]string{
+		GetUserById:                   getUserByIdFunctionName,
+		Register:                      registerFunctionName,
+		Login:                         loginFunctionName,
+		GetAccessTokenViaRefreshToken: getAccessTokenViaRefreshTokenFunctionName,
+		UpdateUserById:                updateUserByIdFunctionName,
 	}, nil
 }
 
 func ReadJwtConfig() (*JwtConfig, error) {
-	privateKey := os.Getenv(JwtPrivateKey)
+	privateKey := os.Getenv(EnvironmentVariableJwtPrivateKey)
 	if privateKey == "" {
-		return nil, fmt.Errorf(EnvironmentVariableNotDefined, JwtPrivateKey)
+		return nil, fmt.Errorf(EnvironmentVariableNotDefined, EnvironmentVariableJwtPrivateKey)
 	}
 	privateKey = strings.ReplaceAll(privateKey, `\n`, "\n")
 
-	publicKey := os.Getenv(JwtPublicKey)
+	publicKey := os.Getenv(EnvironmentVariableJwtPublicKey)
 	if publicKey == "" {
-		return nil, fmt.Errorf(EnvironmentVariableNotDefined, JwtPublicKey)
+		return nil, fmt.Errorf(EnvironmentVariableNotDefined, EnvironmentVariableJwtPublicKey)
 	}
 	publicKey = strings.ReplaceAll(publicKey, `\n`, "\n")
 
@@ -65,8 +86,4 @@ func ReadJwtConfig() (*JwtConfig, error) {
 		PrivateKey: []byte(privateKey),
 		PublicKey:  []byte(publicKey),
 	}, nil
-}
-
-func (c *Config) Print() {
-	_, _ = pretty.Print(c)
 }

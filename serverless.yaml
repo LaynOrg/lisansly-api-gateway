@@ -1,39 +1,57 @@
 service: API-Gateway
+frameworkVersion: "3"
 
 provider:
   name: aws
-  runtime: go1.x
+  runtime: provided.al2
+  architecture: arm64
   region: us-west-1
-  apiGateway:
-    disableDefaultEndpoint: true
+  environment: ${file(env.${opt:stage, self:provider.stage}.json)}
 
 package:
   patterns:
     - "!./**/**"
-    - "api-gateway"
+    - "!./build/**/*"
+    - "./build/*"
+  individually: true
 
 functions:
-  API-Gateway:
-    handler: api-gateway
-    environment: ${file(env.${opt:stage, self:provider.stage}.json)}
+  login:
+    handler: bootstrap
+    package:
+      artifact: build/login.zip
     events:
-      - http:
-          method: GET
-          path: /health
-          cors: true
-      - http:
-          method: POST
-          path: /register
-          cors: true
       - http:
           method: POST
           path: /login
           cors: true
+
+  register:
+    handler: bootstrap
+    package:
+      artifact: build/register.zip
+    events:
       - http:
-          method: PATCH
-          path: /user
+          method: POST
+          path: /register
           cors: true
+
+  getAccessTokenViaRefreshToken:
+    handler: bootstrap
+    package:
+      artifact: build/getAccessTokenViaRefreshToken.zip
+    events:
       - http:
           method: GET
-          path: /user/refreshToken/{refreshToken}
+          path: /user/refreshToken/:refreshToken
+          cors: true
+
+  updateUser:
+    handler: bootstrap
+    package:
+      artifact: build/updateUser.zip
+    events:
+      - http:
+          method: PUT
+          path: /user
           cors: true
