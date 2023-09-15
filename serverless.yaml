@@ -9,17 +9,13 @@ provider:
   environment: ${file(env.${opt:stage, self:provider.stage}.json)}
 
 package:
-  patterns:
-    - "!./**/**"
-    - "!./build/**/*"
-    - "./build/*"
   individually: true
 
 functions:
   login:
     handler: bootstrap
     package:
-      artifact: build/login.zip
+      artifact: build/login/login.zip
     events:
       - http:
           method: POST
@@ -29,7 +25,7 @@ functions:
   register:
     handler: bootstrap
     package:
-      artifact: build/register.zip
+      artifact: build/register/register.zip
     events:
       - http:
           method: POST
@@ -39,7 +35,7 @@ functions:
   getAccessTokenViaRefreshToken:
     handler: bootstrap
     package:
-      artifact: build/getAccessTokenViaRefreshToken.zip
+      artifact: build/getAccessTokenViaRefreshToken/getAccessTokenViaRefreshToken.zip
     events:
       - http:
           method: GET
@@ -49,7 +45,7 @@ functions:
   updateUser:
     handler: bootstrap
     package:
-      artifact: build/updateUser.zip
+      artifact: build/updateUser/updateUser.zip
     events:
       - http:
           method: PUT
