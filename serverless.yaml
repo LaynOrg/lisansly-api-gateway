@@ -48,6 +48,6 @@ functions:
       artifact: build/updateUser/updateUser.zip
     events:
       - http:
-          method: PUT
+          method: PATCH
           path: /user
           cors: true
