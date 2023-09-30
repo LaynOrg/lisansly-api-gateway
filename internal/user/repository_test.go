@@ -56,15 +56,6 @@ func TestRepository_Register(t *testing.T) {
 		Password: TestUserPassword,
 	}
 
-	testError := &cerror.CustomError{
-		HttpStatusCode: http.StatusUnauthorized,
-		LogMessage:     "test error",
-		LogSeverity:    zap.ErrorLevel,
-		LogFields: []zap.Field{
-			zap.Error(errors.New("test error")),
-		},
-	}
-
 	mockController := gomock.NewController(t)
 	defer mockController.Finish()
 
@@ -108,73 +99,37 @@ func TestRepository_Register(t *testing.T) {
 	})
 
 	t.Run("when user api return error should return it", func(t *testing.T) {
-		t.Run("default error", func(t *testing.T) {
-			ctx := context.Background()
+		ctx := context.Background()
 
-			requestBody, err := json.Marshal(testRegisterPayload)
-			require.NoError(t, err)
+		requestBody, err := json.Marshal(testRegisterPayload)
+		require.NoError(t, err)
 
-			mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
-			mockLambdaClient.
-				EXPECT().
-				Invoke(ctx, &lambda.InvokeInput{
-					FunctionName:   aws.String(TestRegisterFunctionName),
-					InvocationType: types.InvocationTypeRequestResponse,
-					Payload:        requestBody,
-				}).
-				Return(
-					nil,
-					errors.New("test error"),
-				)
+		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
+		mockLambdaClient.
+			EXPECT().
+			Invoke(ctx, &lambda.InvokeInput{
+				FunctionName:   aws.String(TestRegisterFunctionName),
+				InvocationType: types.InvocationTypeRequestResponse,
+				Payload:        requestBody,
+			}).
+			Return(
+				nil,
+				errors.New("test error"),
+			)
 
-			repository := NewRepository(mockLambdaClient, &config.Config{
-				FunctionNames: &config.FunctionNames{
-					UserAPI: map[config.UserApiFunctionNames]string{
-						config.Register: TestRegisterFunctionName,
-					},
+		repository := NewRepository(mockLambdaClient, &config.Config{
+			FunctionNames: &config.FunctionNames{
+				UserAPI: map[config.UserApiFunctionNames]string{
+					config.Register: TestRegisterFunctionName,
 				},
-			})
-
-			tokens, cerr := repository.Register(ctx, testRegisterPayload)
-
-			assert.Error(t, cerr)
-			assert.Equal(t, http.StatusInternalServerError, cerr.(*cerror.CustomError).HttpStatusCode)
-			assert.Empty(t, tokens)
+			},
 		})
 
-		t.Run("custom error", func(t *testing.T) {
-			ctx := context.Background()
+		tokens, cerr := repository.Register(ctx, testRegisterPayload)
 
-			requestBody, err := json.Marshal(testRegisterPayload)
-			require.NoError(t, err)
-
-			mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
-			mockLambdaClient.
-				EXPECT().
-				Invoke(ctx, &lambda.InvokeInput{
-					FunctionName:   aws.String(TestRegisterFunctionName),
-					InvocationType: types.InvocationTypeRequestResponse,
-					Payload:        requestBody,
-				}).
-				Return(
-					nil,
-					testError,
-				)
-
-			repository := NewRepository(mockLambdaClient, &config.Config{
-				FunctionNames: &config.FunctionNames{
-					UserAPI: map[config.UserApiFunctionNames]string{
-						config.Register: TestRegisterFunctionName,
-					},
-				},
-			})
-
-			tokens, cerr := repository.Register(ctx, testRegisterPayload)
-
-			assert.Error(t, cerr)
-			assert.Equal(t, testError, cerr)
-			assert.Empty(t, tokens)
-		})
+		assert.Error(t, cerr)
+		assert.Equal(t, http.StatusInternalServerError, cerr.(*cerror.CustomError).HttpStatusCode)
+		assert.Empty(t, tokens)
 	})
 
 	t.Run("when user api can't handle requests should return it", func(t *testing.T) {
@@ -349,61 +304,6 @@ func TestRepository_Login(t *testing.T) {
 
 		assert.Equal(t, TestTokensPayload, tokens)
 		assert.NoError(t, cerr)
-	})
-
-	t.Run("when user api return error should return it", func(t *testing.T) {
-		requestPayload, err := json.Marshal(&LoginPayload{
-			Email:    TestUserEmail,
-			Password: TestUserPassword,
-		})
-		require.NoError(t, err)
-
-		ctx := context.Background()
-		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
-		mockLambdaClient.
-			EXPECT().
-			Invoke(
-				ctx, &lambda.InvokeInput{
-					FunctionName:   aws.String(TestLoginFunctionName),
-					InvocationType: types.InvocationTypeRequestResponse,
-					Payload:        requestPayload,
-				},
-			).
-			Return(
-				nil,
-				&cerror.CustomError{
-					HttpStatusCode: http.StatusUnauthorized,
-					LogMessage:     "test error",
-					LogSeverity:    zap.ErrorLevel,
-					LogFields: []zap.Field{
-						zap.Error(err),
-					},
-				},
-			)
-
-		repository := NewRepository(mockLambdaClient, &config.Config{
-			FunctionNames: &config.FunctionNames{
-				UserAPI: map[config.UserApiFunctionNames]string{
-					config.Login: TestLoginFunctionName,
-				},
-			},
-		})
-
-		tokens, cerr := repository.Login(ctx, &LoginPayload{
-			Email:    TestUserEmail,
-			Password: TestUserPassword,
-		})
-
-		assert.Error(t, cerr)
-		assert.Equal(t, &cerror.CustomError{
-			HttpStatusCode: http.StatusUnauthorized,
-			LogMessage:     "test error",
-			LogSeverity:    zap.ErrorLevel,
-			LogFields: []zap.Field{
-				zap.Error(err),
-			},
-		}, cerr)
-		assert.Nil(t, tokens)
 	})
 
 	t.Run("when user api can't handle requests return it", func(t *testing.T) {
@@ -603,54 +503,6 @@ func TestRepository_GetUserById(t *testing.T) {
 			},
 			user,
 		)
-	})
-
-	t.Run("when user api return error should return it", func(t *testing.T) {
-		requestBody, err := json.Marshal(map[string]any{
-			"userId": TestUserId,
-		})
-		require.NoError(t, err)
-
-		ctx := context.Background()
-		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
-		mockLambdaClient.
-			EXPECT().
-			Invoke(ctx, &lambda.InvokeInput{
-				FunctionName:   aws.String(TestGetUserByIdFunctionName),
-				InvocationType: types.InvocationTypeRequestResponse,
-				Payload:        requestBody,
-			}).
-			Return(
-				nil,
-				&cerror.CustomError{
-					HttpStatusCode: http.StatusUnauthorized,
-					LogMessage:     "test error",
-					LogSeverity:    zap.ErrorLevel,
-					LogFields: []zap.Field{
-						zap.Error(errors.New("test error")),
-					},
-				},
-			)
-
-		repository := NewRepository(mockLambdaClient, &config.Config{
-			FunctionNames: &config.FunctionNames{
-				UserAPI: map[config.UserApiFunctionNames]string{
-					config.GetUserById: TestGetUserByIdFunctionName,
-				},
-			},
-		})
-		user, cerr := repository.GetUserById(ctx, TestUserId)
-
-		assert.Error(t, cerr)
-		assert.Equal(t, &cerror.CustomError{
-			HttpStatusCode: http.StatusUnauthorized,
-			LogMessage:     "test error",
-			LogSeverity:    zap.ErrorLevel,
-			LogFields: []zap.Field{
-				zap.Error(errors.New("test error")),
-			},
-		}, cerr)
-		assert.Nil(t, user)
 	})
 
 	t.Run("when user api can't handle request should return error", func(t *testing.T) {
@@ -854,52 +706,6 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 
 		assert.NoError(t, cerr)
 		assert.Equal(t, TestToken, accessToken)
-	})
-
-	t.Run("when user api return error should return it", func(t *testing.T) {
-		requestBody, err := json.Marshal(map[string]any{
-			"userId":       TestUserId,
-			"refreshToken": TestToken,
-		})
-		require.NoError(t, err)
-
-		ctx := context.Background()
-		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
-		mockLambdaClient.
-			EXPECT().
-			Invoke(ctx, &lambda.InvokeInput{
-				FunctionName:   aws.String(TestGetAccessTokenViaRefreshTokenFunctionName),
-				InvocationType: types.InvocationTypeRequestResponse,
-				Payload:        requestBody,
-			}).
-			Return(
-				nil,
-				&cerror.CustomError{
-					HttpStatusCode: http.StatusUnauthorized,
-					LogMessage:     "test error",
-					LogSeverity:    zap.ErrorLevel,
-				},
-			)
-
-		repository := NewRepository(mockLambdaClient, &config.Config{
-			FunctionNames: &config.FunctionNames{
-				UserAPI: map[config.UserApiFunctionNames]string{
-					config.GetAccessTokenViaRefreshToken: TestGetAccessTokenViaRefreshTokenFunctionName,
-				},
-			},
-		})
-		accessToken, cerr := repository.GetAccessTokenViaRefreshToken(ctx, TestUserId, TestToken)
-
-		assert.Error(t, cerr)
-		assert.Equal(t,
-			&cerror.CustomError{
-				HttpStatusCode: http.StatusUnauthorized,
-				LogMessage:     "test error",
-				LogSeverity:    zap.ErrorLevel,
-			},
-			cerr,
-		)
-		assert.Empty(t, accessToken)
 	})
 
 	t.Run("when user api can't handle request should return error", func(t *testing.T) {
@@ -1110,61 +916,6 @@ func TestRepository_UpdateUserById(t *testing.T) {
 			}).
 			Return(
 				nil,
-				&cerror.CustomError{
-					HttpStatusCode: http.StatusUnauthorized,
-					LogMessage:     "test error",
-					LogSeverity:    zap.ErrorLevel,
-				},
-			)
-
-		repository := NewRepository(mockLambdaClient, &config.Config{
-			FunctionNames: &config.FunctionNames{
-				UserAPI: map[config.UserApiFunctionNames]string{
-					config.UpdateUserById: TestUpdateUserByIdFunctionName,
-				},
-			},
-		})
-
-		tokens, cerr := repository.UpdateUserById(
-			ctx,
-			TestUserId,
-			&UpdateUserPayload{
-				Name:     TestUserId,
-				Email:    TestUserEmail,
-				Password: TestUserPassword,
-			},
-		)
-
-		assert.Error(t, cerr)
-		assert.Equal(t,
-			http.StatusUnauthorized,
-			cerr.(*cerror.CustomError).HttpStatusCode,
-		)
-		assert.Nil(t, tokens)
-	})
-
-	t.Run("when user api can't handle request should return error", func(t *testing.T) {
-		requestBody, err := json.Marshal(map[string]any{
-			"userId": TestUserId,
-			"user": &UpdateUserPayload{
-				Name:     TestUserId,
-				Email:    TestUserEmail,
-				Password: TestUserPassword,
-			},
-		})
-		require.NoError(t, err)
-
-		ctx := context.Background()
-		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
-		mockLambdaClient.
-			EXPECT().
-			Invoke(ctx, &lambda.InvokeInput{
-				FunctionName:   aws.String(TestUpdateUserByIdFunctionName),
-				InvocationType: types.InvocationTypeRequestResponse,
-				Payload:        requestBody,
-			}).
-			Return(
-				nil,
 				errors.New("test error"),
 			)
 
@@ -1176,7 +927,7 @@ func TestRepository_UpdateUserById(t *testing.T) {
 			},
 		})
 
-		tokens, cerr := repository.UpdateUserById(
+		tokens, err := repository.UpdateUserById(
 			ctx,
 			TestUserId,
 			&UpdateUserPayload{
@@ -1186,10 +937,10 @@ func TestRepository_UpdateUserById(t *testing.T) {
 			},
 		)
 
-		assert.Error(t, cerr)
+		assert.Error(t, err)
 		assert.Equal(t,
 			http.StatusInternalServerError,
-			cerr.(*cerror.CustomError).HttpStatusCode,
+			err.(*cerror.CustomError).HttpStatusCode,
 		)
 		assert.Nil(t, tokens)
 	})
@@ -1215,12 +966,10 @@ func TestRepository_UpdateUserById(t *testing.T) {
 				Payload:        requestBody,
 			}).
 			Return(
-				nil,
-				&cerror.CustomError{
-					HttpStatusCode: http.StatusConflict,
-					LogMessage:     "test error",
-					LogSeverity:    zap.WarnLevel,
+				&lambda.InvokeOutput{
+					StatusCode: http.StatusConflict,
 				},
+				nil,
 			)
 
 		repository := NewRepository(mockLambdaClient, &config.Config{
@@ -1270,12 +1019,10 @@ func TestRepository_UpdateUserById(t *testing.T) {
 				Payload:        requestBody,
 			}).
 			Return(
-				nil,
-				&cerror.CustomError{
-					HttpStatusCode: http.StatusUnauthorized,
-					LogMessage:     "test error",
-					LogSeverity:    zap.ErrorLevel,
+				&lambda.InvokeOutput{
+					StatusCode: http.StatusUnauthorized,
 				},
+				nil,
 			)
 
 		repository := NewRepository(mockLambdaClient, &config.Config{

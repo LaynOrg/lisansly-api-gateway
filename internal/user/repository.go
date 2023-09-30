@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -64,13 +63,7 @@ func (r *repository) GetUserById(ctx context.Context, userId string) (*Document,
 		Payload:        requestPayload,
 	})
 	if err != nil {
-		var cerr *cerror.CustomError
-		ok := errors.As(err, &cerr)
-		if ok {
-			return nil, cerr
-		}
-
-		cerr = cerror.ErrorFunctionInvoke
+		cerr := cerror.ErrorFunctionInvoke
 		cerr.LogMessage = fmt.Sprintf(cerr.LogMessage, config.GetUserById)
 		cerr.LogFields = []zap.Field{
 			zap.Error(err),
@@ -132,13 +125,7 @@ func (r *repository) Register(ctx context.Context, user *RegisterPayload) (*jwt_
 		Payload:        requestPayload,
 	})
 	if err != nil {
-		var cerr *cerror.CustomError
-		ok := errors.As(err, &cerr)
-		if ok {
-			return nil, cerr
-		}
-
-		cerr = cerror.ErrorFunctionInvoke
+		cerr := cerror.ErrorFunctionInvoke
 		cerr.LogMessage = fmt.Sprintf(cerr.LogMessage, config.Register)
 		cerr.LogFields = []zap.Field{
 			zap.Error(err),
@@ -191,13 +178,7 @@ func (r *repository) Login(ctx context.Context, user *LoginPayload) (*jwt_genera
 		Payload:        requestPayload,
 	})
 	if err != nil {
-		var cerr *cerror.CustomError
-		ok := errors.As(err, &cerr)
-		if ok {
-			return nil, cerr
-		}
-
-		cerr = cerror.ErrorFunctionInvoke
+		cerr := cerror.ErrorFunctionInvoke
 		cerr.LogMessage = fmt.Sprintf(cerr.LogMessage, config.Login)
 		cerr.LogFields = []zap.Field{
 			zap.Error(err),
@@ -253,13 +234,7 @@ func (r *repository) GetAccessTokenViaRefreshToken(ctx context.Context, userId, 
 		Payload:        requestPayload,
 	})
 	if err != nil {
-		var cerr *cerror.CustomError
-		ok := errors.As(err, &cerr)
-		if ok {
-			return "", cerr
-		}
-
-		cerr = cerror.ErrorFunctionInvoke
+		cerr := cerror.ErrorFunctionInvoke
 		cerr.LogMessage = fmt.Sprintf(cerr.LogMessage, config.GetAccessTokenViaRefreshToken)
 		cerr.LogFields = []zap.Field{
 			zap.Error(err),
@@ -320,13 +295,7 @@ func (r *repository) UpdateUserById(
 		Payload:        requestPayload,
 	})
 	if err != nil {
-		var cerr *cerror.CustomError
-		ok := errors.As(err, &cerr)
-		if ok {
-			return nil, cerr
-		}
-
-		cerr = cerror.ErrorFunctionInvoke
+		cerr := cerror.ErrorFunctionInvoke
 		cerr.LogMessage = fmt.Sprintf(cerr.LogMessage, config.UpdateUserById)
 		cerr.LogFields = []zap.Field{
 			zap.Error(err),
