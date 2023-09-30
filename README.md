@@ -7,6 +7,10 @@ Afterward, you can invoke the function.</br>
 Make sure to open Docker in the background.
 
 ```shell
+make build && make zip
+
+# then
+
 sls invoke local -f funcName
 #or
 serverless invoke local -f funcName
