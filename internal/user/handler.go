@@ -71,10 +71,6 @@ func (h *handler) AuthenticationMiddleware(ctx *fiber.Ctx) error {
 func (h *handler) Register(ctx *fiber.Ctx) error {
 	var err error
 
-	log := logger.FromContext(ctx.Context()).
-		With(zap.String("eventName", "register"))
-	logger.InjectContext(ctx.Context(), log)
-
 	var user *RegisterPayload
 	err = ctx.BodyParser(&user)
 	if err != nil {
@@ -82,7 +78,6 @@ func (h *handler) Register(ctx *fiber.Ctx) error {
 		cerr.LogFields = []zapcore.Field{
 			zap.Any("body", ctx.Body()),
 		}
-
 		return cerr
 	}
 
@@ -92,7 +87,6 @@ func (h *handler) Register(ctx *fiber.Ctx) error {
 		cerr.LogFields = []zapcore.Field{
 			zap.Any("body", ctx.Body()),
 		}
-
 		return cerr
 	}
 
@@ -102,16 +96,13 @@ func (h *handler) Register(ctx *fiber.Ctx) error {
 		return err
 	}
 
+	log := logger.FromContext(ctx.Context())
 	log.Info(logger.EventFinishedSuccessfully)
 	return ctx.Status(fiber.StatusCreated).JSON(tokens)
 }
 
 func (h *handler) Login(ctx *fiber.Ctx) error {
 	var err error
-
-	log := logger.FromContext(ctx.Context()).
-		With(zap.String("eventName", "login"))
-	logger.InjectContext(ctx.Context(), log)
 
 	var user *LoginPayload
 	err = ctx.BodyParser(&user)
@@ -120,7 +111,6 @@ func (h *handler) Login(ctx *fiber.Ctx) error {
 		cerr.LogFields = []zapcore.Field{
 			zap.Any("body", ctx.Body()),
 		}
-
 		return cerr
 	}
 
@@ -130,7 +120,6 @@ func (h *handler) Login(ctx *fiber.Ctx) error {
 		cerr.LogFields = []zapcore.Field{
 			zap.Any("credentials", user),
 		}
-
 		return cerr
 	}
 
@@ -140,16 +129,13 @@ func (h *handler) Login(ctx *fiber.Ctx) error {
 		return err
 	}
 
+	log := logger.FromContext(ctx.Context())
 	log.Info(logger.EventFinishedSuccessfully)
 	return ctx.Status(fiber.StatusOK).JSON(tokens)
 }
 
 func (h *handler) GetAccessTokenViaRefreshToken(ctx *fiber.Ctx) error {
 	var err error
-
-	log := logger.FromContext(ctx.Context()).
-		With(zap.String("eventName", "getAccessTokenViaRefreshToken"))
-	logger.InjectContext(ctx.Context(), log)
 
 	refreshToken := ctx.Params("refreshToken")
 	userId, isOk := ctx.Locals(ContextKeyUserId).(string)
@@ -170,7 +156,6 @@ func (h *handler) GetAccessTokenViaRefreshToken(ctx *fiber.Ctx) error {
 			zap.String("userId", userId),
 			zap.String("refreshToken", refreshToken),
 		}
-
 		return cerr
 	}
 
@@ -180,6 +165,7 @@ func (h *handler) GetAccessTokenViaRefreshToken(ctx *fiber.Ctx) error {
 		return err
 	}
 
+	log := logger.FromContext(ctx.Context())
 	log.Info(logger.EventFinishedSuccessfully)
 	return ctx.
 		Status(fiber.StatusOK).
@@ -191,10 +177,6 @@ func (h *handler) GetAccessTokenViaRefreshToken(ctx *fiber.Ctx) error {
 func (h *handler) UpdateUserById(ctx *fiber.Ctx) error {
 	var err error
 
-	log := logger.FromContext(ctx.Context()).
-		With(zap.String("eventName", "updateUserById"))
-	logger.InjectContext(ctx.Context(), log)
-
 	var user *UpdateUserPayload
 	err = ctx.BodyParser(&user)
 	if err != nil {
@@ -202,7 +184,6 @@ func (h *handler) UpdateUserById(ctx *fiber.Ctx) error {
 		cerr.LogFields = []zap.Field{
 			zap.Any("body", ctx.Body()),
 		}
-
 		return cerr
 	}
 
@@ -212,7 +193,6 @@ func (h *handler) UpdateUserById(ctx *fiber.Ctx) error {
 		cerr.LogFields = []zapcore.Field{
 			zap.Any("body", ctx.Body()),
 		}
-
 		return cerr
 	}
 
@@ -231,6 +211,7 @@ func (h *handler) UpdateUserById(ctx *fiber.Ctx) error {
 		return err
 	}
 
+	log := logger.FromContext(ctx.Context())
 	log.Info(logger.EventFinishedSuccessfully)
 	return ctx.Status(fiber.StatusOK).JSON(tokens)
 }

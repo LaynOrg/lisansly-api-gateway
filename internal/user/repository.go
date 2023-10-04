@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
@@ -41,16 +42,21 @@ func NewRepository(lambdaClient aws_wrapper.LambdaClient, config *config.Config)
 func (r *repository) GetUserById(ctx context.Context, userId string) (*Document, error) {
 	var err error
 
-	var requestPayload []byte
-	requestPayload, err = json.Marshal(map[string]any{
+	var marshalledPayload []byte
+	marshalledPayload, err = json.Marshal(map[string]string{
 		"userId": userId,
+	})
+
+	var requestPayload []byte
+	requestPayload, err = json.Marshal(events.APIGatewayProxyRequest{
+		Body:            string(marshalledPayload),
+		IsBase64Encoded: false,
 	})
 	if err != nil {
 		cerr := cerror.ErrorMarshalling
 		cerr.LogFields = []zap.Field{
 			zap.Error(err),
 		}
-
 		return nil, cerr
 	}
 
@@ -95,7 +101,6 @@ func (r *repository) GetUserById(ctx context.Context, userId string) (*Document,
 		cerr.LogFields = []zap.Field{
 			zap.Error(err),
 		}
-
 		return nil, cerr
 	}
 
@@ -105,14 +110,26 @@ func (r *repository) GetUserById(ctx context.Context, userId string) (*Document,
 func (r *repository) Register(ctx context.Context, user *RegisterPayload) (*jwt_generator.Tokens, error) {
 	var err error
 
-	var requestPayload []byte
-	requestPayload, err = json.Marshal(user)
+	var marshalledUser []byte
+	marshalledUser, err = json.Marshal(user)
 	if err != nil {
 		cerr := cerror.ErrorMarshalling
 		cerr.LogFields = []zap.Field{
 			zap.Error(err),
 		}
+		return nil, cerr
+	}
 
+	var requestPayload []byte
+	requestPayload, err = json.Marshal(events.APIGatewayProxyRequest{
+		Body:            string(marshalledUser),
+		IsBase64Encoded: false,
+	})
+	if err != nil {
+		cerr := cerror.ErrorMarshalling
+		cerr.LogFields = []zap.Field{
+			zap.Error(err),
+		}
 		return nil, cerr
 	}
 
@@ -130,7 +147,6 @@ func (r *repository) Register(ctx context.Context, user *RegisterPayload) (*jwt_
 		cerr.LogFields = []zap.Field{
 			zap.Error(err),
 		}
-
 		return nil, cerr
 	}
 
@@ -149,7 +165,6 @@ func (r *repository) Register(ctx context.Context, user *RegisterPayload) (*jwt_
 		cerr.LogFields = []zap.Field{
 			zap.Error(err),
 		}
-
 		return nil, cerr
 	}
 
@@ -159,23 +174,29 @@ func (r *repository) Register(ctx context.Context, user *RegisterPayload) (*jwt_
 func (r *repository) Login(ctx context.Context, user *LoginPayload) (*jwt_generator.Tokens, error) {
 	var err error
 
-	var requestPayload []byte
-	requestPayload, err = json.Marshal(&user)
+	var marshalledUser []byte
+	marshalledUser, err = json.Marshal(user)
 	if err != nil {
 		cerr := cerror.ErrorMarshalling
 		cerr.LogFields = []zap.Field{
 			zap.Error(err),
 		}
-
 		return nil, cerr
 	}
 
+	var requestBody []byte
+	requestBody, err = json.Marshal(events.APIGatewayProxyRequest{
+		Body:            string(marshalledUser),
+		IsBase64Encoded: false,
+	})
+
 	lambdaFunctionName := r.config.FunctionNames.UserAPI[config.Login]
+
 	var response *lambda.InvokeOutput
 	response, err = r.lambdaClient.Invoke(ctx, &lambda.InvokeInput{
 		FunctionName:   aws.String(lambdaFunctionName),
 		InvocationType: types.InvocationTypeRequestResponse,
-		Payload:        requestPayload,
+		Payload:        requestBody,
 	})
 	if err != nil {
 		cerr := cerror.ErrorFunctionInvoke
@@ -201,7 +222,6 @@ func (r *repository) Login(ctx context.Context, user *LoginPayload) (*jwt_genera
 		cerr.LogFields = []zap.Field{
 			zap.Error(err),
 		}
-
 		return nil, cerr
 	}
 
@@ -211,8 +231,8 @@ func (r *repository) Login(ctx context.Context, user *LoginPayload) (*jwt_genera
 func (r *repository) GetAccessTokenViaRefreshToken(ctx context.Context, userId, refreshToken string) (string, error) {
 	var err error
 
-	var requestPayload []byte
-	requestPayload, err = json.Marshal(map[string]any{
+	var marshalledPayload []byte
+	marshalledPayload, err = json.Marshal(map[string]string{
 		"userId":       userId,
 		"refreshToken": refreshToken,
 	})
@@ -221,7 +241,19 @@ func (r *repository) GetAccessTokenViaRefreshToken(ctx context.Context, userId, 
 		cerr.LogFields = []zap.Field{
 			zap.Error(err),
 		}
+		return "", cerr
+	}
 
+	var requestBody []byte
+	requestBody, err = json.Marshal(events.APIGatewayProxyRequest{
+		Body:            string(marshalledPayload),
+		IsBase64Encoded: false,
+	})
+	if err != nil {
+		cerr := cerror.ErrorUnmarshalling
+		cerr.LogFields = []zap.Field{
+			zap.Error(err),
+		}
 		return "", cerr
 	}
 
@@ -231,7 +263,7 @@ func (r *repository) GetAccessTokenViaRefreshToken(ctx context.Context, userId, 
 	response, err = r.lambdaClient.Invoke(ctx, &lambda.InvokeInput{
 		FunctionName:   aws.String(lambdaFunctionName),
 		InvocationType: types.InvocationTypeRequestResponse,
-		Payload:        requestPayload,
+		Payload:        requestBody,
 	})
 	if err != nil {
 		cerr := cerror.ErrorFunctionInvoke
@@ -239,7 +271,6 @@ func (r *repository) GetAccessTokenViaRefreshToken(ctx context.Context, userId, 
 		cerr.LogFields = []zap.Field{
 			zap.Error(err),
 		}
-
 		return "", cerr
 	}
 
@@ -258,7 +289,6 @@ func (r *repository) GetAccessTokenViaRefreshToken(ctx context.Context, userId, 
 		cerr.LogFields = []zap.Field{
 			zap.Error(err),
 		}
-
 		return "", cerr
 	}
 
@@ -272,8 +302,8 @@ func (r *repository) UpdateUserById(
 ) (*jwt_generator.Tokens, error) {
 	var err error
 
-	var requestPayload []byte
-	requestPayload, err = json.Marshal(map[string]any{
+	var marshalledUpdateUserPayload []byte
+	marshalledUpdateUserPayload, err = json.Marshal(map[string]any{
 		"userId": userId,
 		"user":   user,
 	})
@@ -282,7 +312,19 @@ func (r *repository) UpdateUserById(
 		cerr.LogFields = []zap.Field{
 			zap.Error(err),
 		}
+		return nil, cerr
+	}
 
+	var requestBody []byte
+	requestBody, err = json.Marshal(events.APIGatewayProxyRequest{
+		Body:            string(marshalledUpdateUserPayload),
+		IsBase64Encoded: false,
+	})
+	if err != nil {
+		cerr := cerror.ErrorMarshalling
+		cerr.LogFields = []zap.Field{
+			zap.Error(err),
+		}
 		return nil, cerr
 	}
 
@@ -292,7 +334,7 @@ func (r *repository) UpdateUserById(
 	response, err = r.lambdaClient.Invoke(ctx, &lambda.InvokeInput{
 		FunctionName:   aws.String(lambdaFunctionName),
 		InvocationType: types.InvocationTypeRequestResponse,
-		Payload:        requestPayload,
+		Payload:        requestBody,
 	})
 	if err != nil {
 		cerr := cerror.ErrorFunctionInvoke
@@ -327,7 +369,6 @@ func (r *repository) UpdateUserById(
 		cerr.LogFields = []zap.Field{
 			zap.Error(err),
 		}
-
 		return nil, cerr
 	}
 
