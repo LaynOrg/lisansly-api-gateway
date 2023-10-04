@@ -6,11 +6,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/aws/aws-lambda-go/events"
 	"net/http"
 	"testing"
 	"time"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
@@ -144,7 +144,7 @@ func TestRepository_Register(t *testing.T) {
 		assert.Empty(t, tokens)
 	})
 
-	t.Run("when user api can't handle requests should return it", func(t *testing.T) {
+	t.Run("when user api return conflict status should return error", func(t *testing.T) {
 		ctx := context.Background()
 
 		marshalledRegisterPayload, err := json.Marshal(testRegisterPayload)
@@ -164,8 +164,10 @@ func TestRepository_Register(t *testing.T) {
 				Payload:        requestBody,
 			}).
 			Return(
+				&lambda.InvokeOutput{
+					StatusCode: http.StatusConflict,
+				},
 				nil,
-				errors.New("test error"),
 			)
 
 		repository := NewRepository(mockLambdaClient, &config.Config{
@@ -180,7 +182,7 @@ func TestRepository_Register(t *testing.T) {
 
 		assert.Error(t, cerr)
 		assert.Equal(t,
-			http.StatusInternalServerError,
+			http.StatusConflict,
 			cerr.(*cerror.CustomError).HttpStatusCode,
 		)
 		assert.Nil(t, tokens)
@@ -384,6 +386,58 @@ func TestRepository_Login(t *testing.T) {
 		assert.Error(t, cerr)
 		assert.Equal(t,
 			http.StatusInternalServerError,
+			cerr.(*cerror.CustomError).HttpStatusCode,
+		)
+		assert.Nil(t, tokens)
+	})
+
+	t.Run("when user api return conflict status should return error", func(t *testing.T) {
+		marshalledLoginPayload, err := json.Marshal(&LoginPayload{
+			Email:    TestUserEmail,
+			Password: TestUserPassword,
+		})
+		require.NoError(t, err)
+
+		requestPayload, err := json.Marshal(&events.APIGatewayProxyRequest{
+			Body:            string(marshalledLoginPayload),
+			IsBase64Encoded: false,
+		})
+		require.NoError(t, err)
+
+		ctx := context.Background()
+		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
+		mockLambdaClient.
+			EXPECT().
+			Invoke(
+				ctx, &lambda.InvokeInput{
+					FunctionName:   aws.String(TestLoginFunctionName),
+					InvocationType: types.InvocationTypeRequestResponse,
+					Payload:        requestPayload,
+				},
+			).
+			Return(
+				&lambda.InvokeOutput{
+					StatusCode: http.StatusUnauthorized,
+				},
+				nil,
+			)
+
+		repository := NewRepository(mockLambdaClient, &config.Config{
+			FunctionNames: &config.FunctionNames{
+				UserAPI: map[config.UserApiFunctionNames]string{
+					config.Login: TestLoginFunctionName,
+				},
+			},
+		})
+
+		tokens, cerr := repository.Login(ctx, &LoginPayload{
+			Email:    TestUserEmail,
+			Password: TestUserPassword,
+		})
+
+		assert.Error(t, cerr)
+		assert.Equal(t,
+			http.StatusUnauthorized,
 			cerr.(*cerror.CustomError).HttpStatusCode,
 		)
 		assert.Nil(t, tokens)
@@ -809,6 +863,52 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 		assert.Error(t, cerr)
 		assert.Equal(t,
 			http.StatusInternalServerError,
+			cerr.(*cerror.CustomError).HttpStatusCode,
+		)
+		assert.Empty(t, accessToken)
+	})
+
+	t.Run("when user api return forbidden status code should return error", func(t *testing.T) {
+		marshalledBody, err := json.Marshal(map[string]string{
+			"userId":       TestUserId,
+			"refreshToken": TestToken,
+		})
+		require.NoError(t, err)
+
+		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
+			Body:            string(marshalledBody),
+			IsBase64Encoded: false,
+		})
+		require.NoError(t, err)
+
+		ctx := context.Background()
+		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
+		mockLambdaClient.
+			EXPECT().
+			Invoke(ctx, &lambda.InvokeInput{
+				FunctionName:   aws.String(TestGetAccessTokenViaRefreshTokenFunctionName),
+				InvocationType: types.InvocationTypeRequestResponse,
+				Payload:        requestBody,
+			}).
+			Return(
+				&lambda.InvokeOutput{
+					StatusCode: http.StatusForbidden,
+				},
+				nil,
+			)
+
+		repository := NewRepository(mockLambdaClient, &config.Config{
+			FunctionNames: &config.FunctionNames{
+				UserAPI: map[config.UserApiFunctionNames]string{
+					config.GetAccessTokenViaRefreshToken: TestGetAccessTokenViaRefreshTokenFunctionName,
+				},
+			},
+		})
+		accessToken, cerr := repository.GetAccessTokenViaRefreshToken(ctx, TestUserId, TestToken)
+
+		assert.Error(t, cerr)
+		assert.Equal(t,
+			http.StatusForbidden,
 			cerr.(*cerror.CustomError).HttpStatusCode,
 		)
 		assert.Empty(t, accessToken)

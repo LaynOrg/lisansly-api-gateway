@@ -150,6 +150,14 @@ func (r *repository) Register(ctx context.Context, user *RegisterPayload) (*jwt_
 		return nil, cerr
 	}
 
+	if response.StatusCode == fiber.StatusConflict {
+		return nil, &cerror.CustomError{
+			HttpStatusCode: fiber.StatusConflict,
+			LogMessage:     "user already exist",
+			LogSeverity:    zapcore.WarnLevel,
+		}
+	}
+
 	if response.StatusCode != fiber.StatusCreated {
 		return nil, &cerror.CustomError{
 			HttpStatusCode: int(response.StatusCode),
@@ -205,6 +213,14 @@ func (r *repository) Login(ctx context.Context, user *LoginPayload) (*jwt_genera
 			zap.Error(err),
 		}
 		return nil, cerr
+	}
+
+	if response.StatusCode == fiber.StatusUnauthorized {
+		return nil, &cerror.CustomError{
+			HttpStatusCode: fiber.StatusUnauthorized,
+			LogMessage:     "credentials is invalid",
+			LogSeverity:    zapcore.WarnLevel,
+		}
 	}
 
 	if response.StatusCode != fiber.StatusOK {
@@ -272,6 +288,14 @@ func (r *repository) GetAccessTokenViaRefreshToken(ctx context.Context, userId, 
 			zap.Error(err),
 		}
 		return "", cerr
+	}
+
+	if response.StatusCode == fiber.StatusForbidden {
+		return "", &cerror.CustomError{
+			HttpStatusCode: fiber.StatusForbidden,
+			LogMessage:     "refresh token expired",
+			LogSeverity:    zapcore.WarnLevel,
+		}
 	}
 
 	if response.StatusCode != fiber.StatusOK {
