@@ -46,7 +46,7 @@ functions:
     events:
       - http:
           method: GET
-          path: /user/refreshToken/:refreshToken
+          path: /user/refreshToken/{refreshToken}
           cors: true
 
   updateUser:
