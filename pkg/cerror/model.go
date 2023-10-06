@@ -6,9 +6,18 @@ import (
 )
 
 type CustomError struct {
-	error
-	HttpStatusCode int
-	LogMessage     string
-	LogSeverity    zapcore.Level
-	LogFields      []zap.Field
+	error          `json:"-"`
+	HttpStatusCode int           `json:"httpStatus"`
+	LogMessage     string        `json:"-"`
+	LogSeverity    zapcore.Level `json:"-"`
+	LogFields      []zap.Field   `json:"-"`
+}
+
+const (
+	ErrorTypeUnhandled string = "Unhandled"
+)
+
+type LambdaFunctionErrorPayload struct {
+	ErrorMessage string `json:"errorMessage"`
+	ErrorType    string `json:"errorType"`
 }

@@ -71,6 +71,7 @@ func TestRepository_Register(t *testing.T) {
 			Body:            string(marshalledRegisterPayload),
 			IsBase64Encoded: false,
 		})
+		require.NoError(t, err)
 
 		responseBody, err := json.Marshal(TestTokensPayload)
 		require.NoError(t, err)
@@ -85,8 +86,8 @@ func TestRepository_Register(t *testing.T) {
 			}).
 			Return(
 				&lambda.InvokeOutput{
+					StatusCode: http.StatusOK,
 					Payload:    responseBody,
-					StatusCode: http.StatusCreated,
 				},
 				nil,
 			)
@@ -115,6 +116,7 @@ func TestRepository_Register(t *testing.T) {
 			Body:            string(marshalledRegisterPayload),
 			IsBase64Encoded: false,
 		})
+		require.NoError(t, err)
 
 		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
 		mockLambdaClient.
@@ -154,6 +156,18 @@ func TestRepository_Register(t *testing.T) {
 			Body:            string(marshalledRegisterPayload),
 			IsBase64Encoded: false,
 		})
+		require.NoError(t, err)
+
+		cerrorPayload, err := json.Marshal(&cerror.CustomError{
+			HttpStatusCode: http.StatusConflict,
+		})
+		require.NoError(t, err)
+
+		lambdaFunctionError, err := json.Marshal(&cerror.LambdaFunctionErrorPayload{
+			ErrorMessage: string(cerrorPayload),
+			ErrorType:    cerror.ErrorTypeUnhandled,
+		})
+		require.NoError(t, err)
 
 		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
 		mockLambdaClient.
@@ -165,7 +179,9 @@ func TestRepository_Register(t *testing.T) {
 			}).
 			Return(
 				&lambda.InvokeOutput{
-					StatusCode: http.StatusConflict,
+					StatusCode:    http.StatusOK,
+					FunctionError: aws.String(cerror.ErrorTypeUnhandled),
+					Payload:       lambdaFunctionError,
 				},
 				nil,
 			)
@@ -198,6 +214,18 @@ func TestRepository_Register(t *testing.T) {
 			Body:            string(marshalledRegisterPayload),
 			IsBase64Encoded: false,
 		})
+		require.NoError(t, err)
+
+		cerrorPayload, err := json.Marshal(&cerror.CustomError{
+			HttpStatusCode: http.StatusInternalServerError,
+		})
+		require.NoError(t, err)
+
+		lambdaFunctionError, err := json.Marshal(&cerror.LambdaFunctionErrorPayload{
+			ErrorMessage: string(cerrorPayload),
+			ErrorType:    cerror.ErrorTypeUnhandled,
+		})
+		require.NoError(t, err)
 
 		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
 		mockLambdaClient.
@@ -209,7 +237,9 @@ func TestRepository_Register(t *testing.T) {
 			}).
 			Return(
 				&lambda.InvokeOutput{
-					StatusCode: http.StatusNotFound,
+					StatusCode:    http.StatusOK,
+					FunctionError: aws.String(cerror.ErrorTypeUnhandled),
+					Payload:       lambdaFunctionError,
 				},
 				nil,
 			)
@@ -227,7 +257,7 @@ func TestRepository_Register(t *testing.T) {
 		assert.Error(t, cerr)
 		assert.Equal(t,
 			&cerror.CustomError{
-				HttpStatusCode: http.StatusNotFound,
+				HttpStatusCode: http.StatusInternalServerError,
 				LogMessage:     "user-api return error",
 				LogSeverity:    zapcore.ErrorLevel,
 			},
@@ -246,6 +276,7 @@ func TestRepository_Register(t *testing.T) {
 			Body:            string(marshalledRegisterPayload),
 			IsBase64Encoded: false,
 		})
+		require.NoError(t, err)
 
 		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
 		mockLambdaClient.
@@ -257,8 +288,8 @@ func TestRepository_Register(t *testing.T) {
 			}).
 			Return(
 				&lambda.InvokeOutput{
+					StatusCode: http.StatusOK,
 					Payload:    []byte("{'key':"),
-					StatusCode: http.StatusCreated,
 				},
 				nil,
 			)
@@ -318,8 +349,8 @@ func TestRepository_Login(t *testing.T) {
 			).
 			Return(
 				&lambda.InvokeOutput{
-					Payload:    responsePayload,
 					StatusCode: http.StatusOK,
+					Payload:    responsePayload,
 				},
 				nil,
 			)
@@ -391,7 +422,7 @@ func TestRepository_Login(t *testing.T) {
 		assert.Nil(t, tokens)
 	})
 
-	t.Run("when user api return conflict status should return error", func(t *testing.T) {
+	t.Run("when user api return unauthorized status should return error", func(t *testing.T) {
 		marshalledLoginPayload, err := json.Marshal(&LoginPayload{
 			Email:    TestUserEmail,
 			Password: TestUserPassword,
@@ -401,6 +432,17 @@ func TestRepository_Login(t *testing.T) {
 		requestPayload, err := json.Marshal(&events.APIGatewayProxyRequest{
 			Body:            string(marshalledLoginPayload),
 			IsBase64Encoded: false,
+		})
+		require.NoError(t, err)
+
+		cerrorPayload, err := json.Marshal(&cerror.CustomError{
+			HttpStatusCode: http.StatusUnauthorized,
+		})
+		require.NoError(t, err)
+
+		lambdaFunctionError, err := json.Marshal(cerror.LambdaFunctionErrorPayload{
+			ErrorMessage: string(cerrorPayload),
+			ErrorType:    cerror.ErrorTypeUnhandled,
 		})
 		require.NoError(t, err)
 
@@ -417,7 +459,9 @@ func TestRepository_Login(t *testing.T) {
 			).
 			Return(
 				&lambda.InvokeOutput{
-					StatusCode: http.StatusUnauthorized,
+					StatusCode:    http.StatusOK,
+					FunctionError: aws.String(cerror.ErrorTypeUnhandled),
+					Payload:       lambdaFunctionError,
 				},
 				nil,
 			)
@@ -456,6 +500,17 @@ func TestRepository_Login(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		cerrorPayload, err := json.Marshal(&cerror.CustomError{
+			HttpStatusCode: http.StatusInternalServerError,
+		})
+		require.NoError(t, err)
+
+		lambdaFunctionError, err := json.Marshal(cerror.LambdaFunctionErrorPayload{
+			ErrorMessage: string(cerrorPayload),
+			ErrorType:    cerror.ErrorTypeUnhandled,
+		})
+		require.NoError(t, err)
+
 		ctx := context.Background()
 		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
 		mockLambdaClient.
@@ -469,7 +524,9 @@ func TestRepository_Login(t *testing.T) {
 			).
 			Return(
 				&lambda.InvokeOutput{
-					StatusCode: http.StatusUnauthorized,
+					StatusCode:    http.StatusOK,
+					FunctionError: aws.String(cerror.ErrorTypeUnhandled),
+					Payload:       lambdaFunctionError,
 				},
 				nil,
 			)
@@ -489,7 +546,7 @@ func TestRepository_Login(t *testing.T) {
 
 		assert.Error(t, cerr)
 		assert.Equal(t,
-			http.StatusUnauthorized,
+			http.StatusInternalServerError,
 			cerr.(*cerror.CustomError).HttpStatusCode,
 		)
 		assert.Nil(t, tokens)
@@ -521,8 +578,8 @@ func TestRepository_Login(t *testing.T) {
 			).
 			Return(
 				&lambda.InvokeOutput{
-					Payload:    []byte(`{"key":`),
 					StatusCode: http.StatusOK,
+					Payload:    []byte(`{"key":`),
 				},
 				nil,
 			)
@@ -582,8 +639,8 @@ func TestRepository_GetUserById(t *testing.T) {
 			}).
 			Return(
 				&lambda.InvokeOutput{
-					Payload:    response,
 					StatusCode: http.StatusOK,
+					Payload:    response,
 				},
 				nil,
 			)
@@ -656,6 +713,17 @@ func TestRepository_GetUserById(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		cerrorPayload, err := json.Marshal(&cerror.CustomError{
+			HttpStatusCode: http.StatusNotFound,
+		})
+		require.NoError(t, err)
+
+		lambdaFunctionError, err := json.Marshal(&cerror.LambdaFunctionErrorPayload{
+			ErrorMessage: string(cerrorPayload),
+			ErrorType:    cerror.ErrorTypeUnhandled,
+		})
+		require.NoError(t, err)
+
 		ctx := context.Background()
 		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
 		mockLambdaClient.
@@ -667,7 +735,9 @@ func TestRepository_GetUserById(t *testing.T) {
 			}).
 			Return(
 				&lambda.InvokeOutput{
-					StatusCode: http.StatusNotFound,
+					StatusCode:    http.StatusOK,
+					FunctionError: aws.String(cerror.ErrorTypeUnhandled),
+					Payload:       lambdaFunctionError,
 				},
 				nil,
 			)
@@ -697,6 +767,17 @@ func TestRepository_GetUserById(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		cerrorPayload, err := json.Marshal(&cerror.CustomError{
+			HttpStatusCode: http.StatusInternalServerError,
+		})
+		require.NoError(t, err)
+
+		lambdaFunctionError, err := json.Marshal(&cerror.LambdaFunctionErrorPayload{
+			ErrorMessage: string(cerrorPayload),
+			ErrorType:    cerror.ErrorTypeUnhandled,
+		})
+		require.NoError(t, err)
+
 		ctx := context.Background()
 		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
 		mockLambdaClient.
@@ -708,7 +789,9 @@ func TestRepository_GetUserById(t *testing.T) {
 			}).
 			Return(
 				&lambda.InvokeOutput{
-					StatusCode: http.StatusUnauthorized,
+					StatusCode:    http.StatusOK,
+					FunctionError: aws.String(cerror.ErrorTypeUnhandled),
+					Payload:       lambdaFunctionError,
 				},
 				nil,
 			)
@@ -724,7 +807,7 @@ func TestRepository_GetUserById(t *testing.T) {
 
 		assert.Error(t, cerr)
 		assert.Equal(t,
-			http.StatusUnauthorized,
+			http.StatusInternalServerError,
 			cerr.(*cerror.CustomError).HttpStatusCode,
 		)
 		assert.Nil(t, user)
@@ -805,8 +888,8 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 			}).
 			Return(
 				&lambda.InvokeOutput{
-					Payload:    responseBody,
 					StatusCode: http.StatusOK,
+					Payload:    responseBody,
 				},
 				nil,
 			)
@@ -881,6 +964,17 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		cerrorPayload, err := json.Marshal(&cerror.CustomError{
+			HttpStatusCode: http.StatusForbidden,
+		})
+		require.NoError(t, err)
+
+		lambdaFunctionError, err := json.Marshal(&cerror.LambdaFunctionErrorPayload{
+			ErrorMessage: string(cerrorPayload),
+			ErrorType:    cerror.ErrorTypeUnhandled,
+		})
+		require.NoError(t, err)
+
 		ctx := context.Background()
 		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
 		mockLambdaClient.
@@ -892,7 +986,9 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 			}).
 			Return(
 				&lambda.InvokeOutput{
-					StatusCode: http.StatusForbidden,
+					StatusCode:    http.StatusOK,
+					FunctionError: aws.String(cerror.ErrorTypeUnhandled),
+					Payload:       lambdaFunctionError,
 				},
 				nil,
 			)
@@ -927,6 +1023,17 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		cerrorPayload, err := json.Marshal(&cerror.CustomError{
+			HttpStatusCode: http.StatusInternalServerError,
+		})
+		require.NoError(t, err)
+
+		lambdaFunctionError, err := json.Marshal(&cerror.LambdaFunctionErrorPayload{
+			ErrorMessage: string(cerrorPayload),
+			ErrorType:    cerror.ErrorTypeUnhandled,
+		})
+		require.NoError(t, err)
+
 		ctx := context.Background()
 		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
 		mockLambdaClient.
@@ -938,7 +1045,9 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 			}).
 			Return(
 				&lambda.InvokeOutput{
-					StatusCode: http.StatusUnauthorized,
+					StatusCode:    http.StatusOK,
+					FunctionError: aws.String(cerror.ErrorTypeUnhandled),
+					Payload:       lambdaFunctionError,
 				},
 				nil,
 			)
@@ -954,7 +1063,7 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 
 		assert.Error(t, cerr)
 		assert.Equal(t,
-			http.StatusUnauthorized,
+			http.StatusInternalServerError,
 			cerr.(*cerror.CustomError).HttpStatusCode,
 		)
 		assert.Empty(t, accessToken)
@@ -984,8 +1093,8 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 			}).
 			Return(
 				&lambda.InvokeOutput{
-					Payload:    []byte(`{"key":}`),
 					StatusCode: http.StatusOK,
+					Payload:    []byte(`{"key":}`),
 				},
 				nil,
 			)
@@ -1045,8 +1154,8 @@ func TestRepository_UpdateUserById(t *testing.T) {
 			}).
 			Return(
 				&lambda.InvokeOutput{
-					Payload:    responseBody,
 					StatusCode: http.StatusOK,
+					Payload:    responseBody,
 				},
 				nil,
 			)
@@ -1151,6 +1260,17 @@ func TestRepository_UpdateUserById(t *testing.T) {
 			IsBase64Encoded: false,
 		})
 
+		cerrorPayload, err := json.Marshal(&cerror.CustomError{
+			HttpStatusCode: http.StatusConflict,
+		})
+		require.NoError(t, err)
+
+		lambdaFunctionError, err := json.Marshal(&cerror.LambdaFunctionErrorPayload{
+			ErrorMessage: string(cerrorPayload),
+			ErrorType:    cerror.ErrorTypeUnhandled,
+		})
+		require.NoError(t, err)
+
 		ctx := context.Background()
 		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
 		mockLambdaClient.
@@ -1162,7 +1282,9 @@ func TestRepository_UpdateUserById(t *testing.T) {
 			}).
 			Return(
 				&lambda.InvokeOutput{
-					StatusCode: http.StatusConflict,
+					StatusCode:    http.StatusOK,
+					FunctionError: aws.String(cerror.ErrorTypeUnhandled),
+					Payload:       lambdaFunctionError,
 				},
 				nil,
 			)
@@ -1209,6 +1331,17 @@ func TestRepository_UpdateUserById(t *testing.T) {
 			IsBase64Encoded: false,
 		})
 
+		cerrorPayload, err := json.Marshal(&cerror.CustomError{
+			HttpStatusCode: http.StatusInternalServerError,
+		})
+		require.NoError(t, err)
+
+		lambdaFunctionError, err := json.Marshal(&cerror.LambdaFunctionErrorPayload{
+			ErrorMessage: string(cerrorPayload),
+			ErrorType:    cerror.ErrorTypeUnhandled,
+		})
+		require.NoError(t, err)
+
 		ctx := context.Background()
 		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
 		mockLambdaClient.
@@ -1220,7 +1353,9 @@ func TestRepository_UpdateUserById(t *testing.T) {
 			}).
 			Return(
 				&lambda.InvokeOutput{
-					StatusCode: http.StatusUnauthorized,
+					StatusCode:    http.StatusOK,
+					FunctionError: aws.String(cerror.ErrorTypeUnhandled),
+					Payload:       lambdaFunctionError,
 				},
 				nil,
 			)
@@ -1245,7 +1380,7 @@ func TestRepository_UpdateUserById(t *testing.T) {
 
 		assert.Error(t, cerr)
 		assert.Equal(t,
-			http.StatusUnauthorized,
+			http.StatusInternalServerError,
 			cerr.(*cerror.CustomError).HttpStatusCode,
 		)
 		assert.Nil(t, tokens)
@@ -1278,8 +1413,8 @@ func TestRepository_UpdateUserById(t *testing.T) {
 			}).
 			Return(
 				&lambda.InvokeOutput{
-					Payload:    []byte(`{"key":}`),
 					StatusCode: http.StatusOK,
+					Payload:    []byte(`{"key":}`),
 				},
 				nil,
 			)
