@@ -5,12 +5,10 @@ package user
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"testing"
 	"time"
 
-	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
@@ -64,13 +62,7 @@ func TestRepository_Register(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		ctx := context.Background()
 
-		marshalledRegisterPayload, err := json.Marshal(testRegisterPayload)
-		require.NoError(t, err)
-
-		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
-			Body:            string(marshalledRegisterPayload),
-			IsBase64Encoded: false,
-		})
+		requestBody, err := json.Marshal(testRegisterPayload)
 		require.NoError(t, err)
 
 		responseBody, err := json.Marshal(TestTokensPayload)
@@ -86,8 +78,8 @@ func TestRepository_Register(t *testing.T) {
 			}).
 			Return(
 				&lambda.InvokeOutput{
-					StatusCode: http.StatusOK,
 					Payload:    responseBody,
+					StatusCode: http.StatusOK,
 				},
 				nil,
 			)
@@ -109,13 +101,7 @@ func TestRepository_Register(t *testing.T) {
 	t.Run("when user api return error should return it", func(t *testing.T) {
 		ctx := context.Background()
 
-		marshalledRegisterPayload, err := json.Marshal(testRegisterPayload)
-		require.NoError(t, err)
-
-		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
-			Body:            string(marshalledRegisterPayload),
-			IsBase64Encoded: false,
-		})
+		requestBody, err := json.Marshal(testRegisterPayload)
 		require.NoError(t, err)
 
 		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
@@ -149,13 +135,7 @@ func TestRepository_Register(t *testing.T) {
 	t.Run("when user api return conflict status should return error", func(t *testing.T) {
 		ctx := context.Background()
 
-		marshalledRegisterPayload, err := json.Marshal(testRegisterPayload)
-		require.NoError(t, err)
-
-		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
-			Body:            string(marshalledRegisterPayload),
-			IsBase64Encoded: false,
-		})
+		requestBody, err := json.Marshal(testRegisterPayload)
 		require.NoError(t, err)
 
 		cerrorPayload, err := json.Marshal(&cerror.CustomError{
@@ -207,13 +187,7 @@ func TestRepository_Register(t *testing.T) {
 	t.Run("when user api return ambiguous status code should return error", func(t *testing.T) {
 		ctx := context.Background()
 
-		marshalledRegisterPayload, err := json.Marshal(testRegisterPayload)
-		require.NoError(t, err)
-
-		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
-			Body:            string(marshalledRegisterPayload),
-			IsBase64Encoded: false,
-		})
+		requestBody, err := json.Marshal(testRegisterPayload)
 		require.NoError(t, err)
 
 		cerrorPayload, err := json.Marshal(&cerror.CustomError{
@@ -269,13 +243,7 @@ func TestRepository_Register(t *testing.T) {
 	t.Run("when user api return ambiguous response payload should return error", func(t *testing.T) {
 		ctx := context.Background()
 
-		marshalledRegisterPayload, err := json.Marshal(testRegisterPayload)
-		require.NoError(t, err)
-
-		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
-			Body:            string(marshalledRegisterPayload),
-			IsBase64Encoded: false,
-		})
+		requestBody, err := json.Marshal(testRegisterPayload)
 		require.NoError(t, err)
 
 		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
@@ -318,15 +286,9 @@ func TestRepository_Login(t *testing.T) {
 	defer mockController.Finish()
 
 	t.Run("happy path", func(t *testing.T) {
-		marshalledLoginPayload, err := json.Marshal(&LoginPayload{
+		requestBody, err := json.Marshal(&LoginPayload{
 			Email:    TestUserEmail,
 			Password: TestUserPassword,
-		})
-		require.NoError(t, err)
-
-		requestPayload, err := json.Marshal(&events.APIGatewayProxyRequest{
-			Body:            string(marshalledLoginPayload),
-			IsBase64Encoded: false,
 		})
 		require.NoError(t, err)
 
@@ -344,7 +306,7 @@ func TestRepository_Login(t *testing.T) {
 				ctx, &lambda.InvokeInput{
 					FunctionName:   aws.String(TestLoginFunctionName),
 					InvocationType: types.InvocationTypeRequestResponse,
-					Payload:        requestPayload,
+					Payload:        requestBody,
 				},
 			).
 			Return(
@@ -373,15 +335,9 @@ func TestRepository_Login(t *testing.T) {
 	})
 
 	t.Run("when user api can't handle requests return it", func(t *testing.T) {
-		marshalledLoginPayload, err := json.Marshal(&LoginPayload{
+		requestBody, err := json.Marshal(&LoginPayload{
 			Email:    TestUserEmail,
 			Password: TestUserPassword,
-		})
-		require.NoError(t, err)
-
-		requestPayload, err := json.Marshal(&events.APIGatewayProxyRequest{
-			Body:            string(marshalledLoginPayload),
-			IsBase64Encoded: false,
 		})
 		require.NoError(t, err)
 
@@ -393,7 +349,7 @@ func TestRepository_Login(t *testing.T) {
 				ctx, &lambda.InvokeInput{
 					FunctionName:   aws.String(TestLoginFunctionName),
 					InvocationType: types.InvocationTypeRequestResponse,
-					Payload:        requestPayload,
+					Payload:        requestBody,
 				},
 			).
 			Return(
@@ -423,15 +379,9 @@ func TestRepository_Login(t *testing.T) {
 	})
 
 	t.Run("when user api return unauthorized status should return error", func(t *testing.T) {
-		marshalledLoginPayload, err := json.Marshal(&LoginPayload{
+		requestBody, err := json.Marshal(&LoginPayload{
 			Email:    TestUserEmail,
 			Password: TestUserPassword,
-		})
-		require.NoError(t, err)
-
-		requestPayload, err := json.Marshal(&events.APIGatewayProxyRequest{
-			Body:            string(marshalledLoginPayload),
-			IsBase64Encoded: false,
 		})
 		require.NoError(t, err)
 
@@ -454,7 +404,7 @@ func TestRepository_Login(t *testing.T) {
 				ctx, &lambda.InvokeInput{
 					FunctionName:   aws.String(TestLoginFunctionName),
 					InvocationType: types.InvocationTypeRequestResponse,
-					Payload:        requestPayload,
+					Payload:        requestBody,
 				},
 			).
 			Return(
@@ -488,15 +438,9 @@ func TestRepository_Login(t *testing.T) {
 	})
 
 	t.Run("when user api return ambiguous status should return error", func(t *testing.T) {
-		marshalledLoginPayload, err := json.Marshal(&LoginPayload{
+		requestBody, err := json.Marshal(&LoginPayload{
 			Email:    TestUserEmail,
 			Password: TestUserPassword,
-		})
-		require.NoError(t, err)
-
-		requestPayload, err := json.Marshal(&events.APIGatewayProxyRequest{
-			Body:            string(marshalledLoginPayload),
-			IsBase64Encoded: false,
 		})
 		require.NoError(t, err)
 
@@ -519,7 +463,7 @@ func TestRepository_Login(t *testing.T) {
 				ctx, &lambda.InvokeInput{
 					FunctionName:   aws.String(TestLoginFunctionName),
 					InvocationType: types.InvocationTypeRequestResponse,
-					Payload:        requestPayload,
+					Payload:        requestBody,
 				},
 			).
 			Return(
@@ -553,15 +497,9 @@ func TestRepository_Login(t *testing.T) {
 	})
 
 	t.Run("when user api return ambiguous response payload should return error", func(t *testing.T) {
-		marshalledLoginPayload, err := json.Marshal(&LoginPayload{
+		requestBody, err := json.Marshal(&LoginPayload{
 			Email:    TestUserEmail,
 			Password: TestUserPassword,
-		})
-		require.NoError(t, err)
-
-		requestPayload, err := json.Marshal(&events.APIGatewayProxyRequest{
-			Body:            string(marshalledLoginPayload),
-			IsBase64Encoded: false,
 		})
 		require.NoError(t, err)
 
@@ -573,7 +511,7 @@ func TestRepository_Login(t *testing.T) {
 				ctx, &lambda.InvokeInput{
 					FunctionName:   aws.String(TestLoginFunctionName),
 					InvocationType: types.InvocationTypeRequestResponse,
-					Payload:        requestPayload,
+					Payload:        requestBody,
 				},
 			).
 			Return(
@@ -611,9 +549,8 @@ func TestRepository_GetUserById(t *testing.T) {
 	defer mockController.Finish()
 
 	t.Run("happy path", func(t *testing.T) {
-		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
-			Body:            fmt.Sprintf(`{"userId":"%s"}`, TestUserId),
-			IsBase64Encoded: false,
+		requestBody, err := json.Marshal(&GetUserByIdPayloadToUserAPI{
+			UserId: TestUserId,
 		})
 		require.NoError(t, err)
 
@@ -669,9 +606,8 @@ func TestRepository_GetUserById(t *testing.T) {
 	})
 
 	t.Run("when user api can't handle request should return error", func(t *testing.T) {
-		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
-			Body:            fmt.Sprintf(`{"userId":"%s"}`, TestUserId),
-			IsBase64Encoded: false,
+		requestBody, err := json.Marshal(&GetUserByIdPayloadToUserAPI{
+			UserId: TestUserId,
 		})
 		require.NoError(t, err)
 
@@ -707,9 +643,8 @@ func TestRepository_GetUserById(t *testing.T) {
 	})
 
 	t.Run("when user api return user not found should return error", func(t *testing.T) {
-		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
-			Body:            fmt.Sprintf(`{"userId":"%s"}`, TestUserId),
-			IsBase64Encoded: false,
+		requestBody, err := json.Marshal(&GetUserByIdPayloadToUserAPI{
+			UserId: TestUserId,
 		})
 		require.NoError(t, err)
 
@@ -761,9 +696,8 @@ func TestRepository_GetUserById(t *testing.T) {
 	})
 
 	t.Run("when user api return ambiguous status code should return it", func(t *testing.T) {
-		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
-			Body:            fmt.Sprintf(`{"userId":"%s"}`, TestUserId),
-			IsBase64Encoded: false,
+		requestBody, err := json.Marshal(&GetUserByIdPayloadToUserAPI{
+			UserId: TestUserId,
 		})
 		require.NoError(t, err)
 
@@ -814,9 +748,8 @@ func TestRepository_GetUserById(t *testing.T) {
 	})
 
 	t.Run("when user api return ambiguous response body should return error", func(t *testing.T) {
-		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
-			Body:            fmt.Sprintf(`{"userId":"%s"}`, TestUserId),
-			IsBase64Encoded: false,
+		requestBody, err := json.Marshal(&GetUserByIdPayloadToUserAPI{
+			UserId: TestUserId,
 		})
 		require.NoError(t, err)
 
@@ -860,15 +793,9 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 	defer mockController.Finish()
 
 	t.Run("happy path", func(t *testing.T) {
-		marshalledBody, err := json.Marshal(map[string]string{
+		requestBody, err := json.Marshal(map[string]string{
 			"userId":       TestUserId,
 			"refreshToken": TestToken,
-		})
-		require.NoError(t, err)
-
-		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
-			Body:            string(marshalledBody),
-			IsBase64Encoded: false,
 		})
 		require.NoError(t, err)
 
@@ -908,15 +835,9 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 	})
 
 	t.Run("when user api can't handle request should return error", func(t *testing.T) {
-		marshalledBody, err := json.Marshal(map[string]string{
+		requestBody, err := json.Marshal(map[string]string{
 			"userId":       TestUserId,
 			"refreshToken": TestToken,
-		})
-		require.NoError(t, err)
-
-		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
-			Body:            string(marshalledBody),
-			IsBase64Encoded: false,
 		})
 		require.NoError(t, err)
 
@@ -952,15 +873,9 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 	})
 
 	t.Run("when user api return forbidden status code should return error", func(t *testing.T) {
-		marshalledBody, err := json.Marshal(map[string]string{
+		requestBody, err := json.Marshal(map[string]string{
 			"userId":       TestUserId,
 			"refreshToken": TestToken,
-		})
-		require.NoError(t, err)
-
-		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
-			Body:            string(marshalledBody),
-			IsBase64Encoded: false,
 		})
 		require.NoError(t, err)
 
@@ -1011,15 +926,9 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 	})
 
 	t.Run("when user api return ambiguous status should return error", func(t *testing.T) {
-		marshalledBody, err := json.Marshal(map[string]string{
+		requestBody, err := json.Marshal(map[string]string{
 			"userId":       TestUserId,
 			"refreshToken": TestToken,
-		})
-		require.NoError(t, err)
-
-		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
-			Body:            string(marshalledBody),
-			IsBase64Encoded: false,
 		})
 		require.NoError(t, err)
 
@@ -1070,15 +979,9 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 	})
 
 	t.Run("when user api return ambiguous response body should return error", func(t *testing.T) {
-		marshalledBody, err := json.Marshal(map[string]string{
+		requestBody, err := json.Marshal(map[string]string{
 			"userId":       TestUserId,
 			"refreshToken": TestToken,
-		})
-		require.NoError(t, err)
-
-		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
-			Body:            string(marshalledBody),
-			IsBase64Encoded: false,
 		})
 		require.NoError(t, err)
 
@@ -1122,20 +1025,15 @@ func TestRepository_UpdateUserById(t *testing.T) {
 	defer mockController.Finish()
 
 	t.Run("happy path", func(t *testing.T) {
-		marshalledUser, err := json.Marshal(map[string]any{
-			"userId": TestUserId,
-			"user": &UpdateUserPayload{
+		requestBody, err := json.Marshal(UpdateUserByIdPayloadToUserAPI{
+			UserId: TestUserId,
+			User: &UpdateUserPayload{
 				Name:     TestUserId,
 				Email:    TestUserEmail,
 				Password: TestUserPassword,
 			},
 		})
 		require.NoError(t, err)
-
-		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
-			Body:            string(marshalledUser),
-			IsBase64Encoded: false,
-		})
 
 		responseBody, err := json.Marshal(&jwt_generator.Tokens{
 			AccessToken:  TestToken,
@@ -1189,20 +1087,15 @@ func TestRepository_UpdateUserById(t *testing.T) {
 	})
 
 	t.Run("when user api return error should return it", func(t *testing.T) {
-		marshalledUser, err := json.Marshal(map[string]any{
-			"userId": TestUserId,
-			"user": &UpdateUserPayload{
+		requestBody, err := json.Marshal(UpdateUserByIdPayloadToUserAPI{
+			UserId: TestUserId,
+			User: &UpdateUserPayload{
 				Name:     TestUserId,
 				Email:    TestUserEmail,
 				Password: TestUserPassword,
 			},
 		})
 		require.NoError(t, err)
-
-		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
-			Body:            string(marshalledUser),
-			IsBase64Encoded: false,
-		})
 
 		ctx := context.Background()
 		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)
@@ -1245,20 +1138,15 @@ func TestRepository_UpdateUserById(t *testing.T) {
 	})
 
 	t.Run("when user api return conflict status code should return error", func(t *testing.T) {
-		marshalledUser, err := json.Marshal(map[string]any{
-			"userId": TestUserId,
-			"user": &UpdateUserPayload{
+		requestBody, err := json.Marshal(UpdateUserByIdPayloadToUserAPI{
+			UserId: TestUserId,
+			User: &UpdateUserPayload{
 				Name:     TestUserId,
 				Email:    TestUserEmail,
 				Password: TestUserPassword,
 			},
 		})
 		require.NoError(t, err)
-
-		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
-			Body:            string(marshalledUser),
-			IsBase64Encoded: false,
-		})
 
 		cerrorPayload, err := json.Marshal(&cerror.CustomError{
 			HttpStatusCode: http.StatusConflict,
@@ -1316,20 +1204,15 @@ func TestRepository_UpdateUserById(t *testing.T) {
 	})
 
 	t.Run("when user api return ambiguous status code should return error", func(t *testing.T) {
-		marshalledUser, err := json.Marshal(map[string]any{
-			"userId": TestUserId,
-			"user": &UpdateUserPayload{
+		requestBody, err := json.Marshal(UpdateUserByIdPayloadToUserAPI{
+			UserId: TestUserId,
+			User: &UpdateUserPayload{
 				Name:     TestUserId,
 				Email:    TestUserEmail,
 				Password: TestUserPassword,
 			},
 		})
 		require.NoError(t, err)
-
-		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
-			Body:            string(marshalledUser),
-			IsBase64Encoded: false,
-		})
 
 		cerrorPayload, err := json.Marshal(&cerror.CustomError{
 			HttpStatusCode: http.StatusInternalServerError,
@@ -1387,20 +1270,15 @@ func TestRepository_UpdateUserById(t *testing.T) {
 	})
 
 	t.Run("when user api return ambiguous response body should return error", func(t *testing.T) {
-		marshalledUser, err := json.Marshal(map[string]any{
-			"userId": TestUserId,
-			"user": &UpdateUserPayload{
+		requestBody, err := json.Marshal(UpdateUserByIdPayloadToUserAPI{
+			UserId: TestUserId,
+			User: &UpdateUserPayload{
 				Name:     TestUserId,
 				Email:    TestUserEmail,
 				Password: TestUserPassword,
 			},
 		})
 		require.NoError(t, err)
-
-		requestBody, err := json.Marshal(events.APIGatewayProxyRequest{
-			Body:            string(marshalledUser),
-			IsBase64Encoded: false,
-		})
 
 		ctx := context.Background()
 		mockLambdaClient := aws_wrapper.NewMockLambdaClient(mockController)

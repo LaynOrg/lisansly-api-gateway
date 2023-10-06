@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
@@ -42,15 +41,9 @@ func NewRepository(lambdaClient aws_wrapper.LambdaClient, config *config.Config)
 func (r *repository) GetUserById(ctx context.Context, userId string) (*Document, error) {
 	var err error
 
-	var marshalledPayload []byte
-	marshalledPayload, err = json.Marshal(map[string]string{
-		"userId": userId,
-	})
-
 	var requestPayload []byte
-	requestPayload, err = json.Marshal(events.APIGatewayProxyRequest{
-		Body:            string(marshalledPayload),
-		IsBase64Encoded: false,
+	requestPayload, err = json.Marshal(GetUserByIdPayloadToUserAPI{
+		UserId: userId,
 	})
 	if err != nil {
 		cerr := cerror.ErrorMarshalling
@@ -61,9 +54,8 @@ func (r *repository) GetUserById(ctx context.Context, userId string) (*Document,
 	}
 
 	lambdaFunctionName := r.config.FunctionNames.UserAPI[config.GetUserById]
-
-	var response *lambda.InvokeOutput
-	response, err = r.lambdaClient.Invoke(ctx, &lambda.InvokeInput{
+	var invokeOutput *lambda.InvokeOutput
+	invokeOutput, err = r.lambdaClient.Invoke(ctx, &lambda.InvokeInput{
 		FunctionName:   aws.String(lambdaFunctionName),
 		InvocationType: types.InvocationTypeRequestResponse,
 		Payload:        requestPayload,
@@ -77,13 +69,12 @@ func (r *repository) GetUserById(ctx context.Context, userId string) (*Document,
 		return nil, cerr
 	}
 
-	functionError := aws.ToString(response.FunctionError)
-	if functionError == cerror.ErrorTypeUnhandled {
-		cerrFromLambda, err := cerror.UnmarshalLambdaFunctionErrorToCerror(response.Payload)
-		if err != nil {
-			return nil, err
-		}
+	cerrFromLambda := cerror.LambdaFunctionErrorToCerror(invokeOutput)
+	if err != nil {
+		return nil, err
+	}
 
+	if cerrFromLambda != nil {
 		statusCode := cerrFromLambda.HttpStatusCode
 		if statusCode == fiber.StatusNotFound {
 			return nil, &cerror.CustomError{
@@ -103,7 +94,7 @@ func (r *repository) GetUserById(ctx context.Context, userId string) (*Document,
 	}
 
 	var user *Document
-	err = json.Unmarshal(response.Payload, &user)
+	err = json.Unmarshal(invokeOutput.Payload, &user)
 	if err != nil {
 		cerr := cerror.ErrorUnmarshalling
 		cerr.LogFields = []zap.Field{
@@ -118,21 +109,8 @@ func (r *repository) GetUserById(ctx context.Context, userId string) (*Document,
 func (r *repository) Register(ctx context.Context, user *RegisterPayload) (*jwt_generator.Tokens, error) {
 	var err error
 
-	var marshalledUser []byte
-	marshalledUser, err = json.Marshal(user)
-	if err != nil {
-		cerr := cerror.ErrorMarshalling
-		cerr.LogFields = []zap.Field{
-			zap.Error(err),
-		}
-		return nil, cerr
-	}
-
 	var requestPayload []byte
-	requestPayload, err = json.Marshal(events.APIGatewayProxyRequest{
-		Body:            string(marshalledUser),
-		IsBase64Encoded: false,
-	})
+	requestPayload, err = json.Marshal(user)
 	if err != nil {
 		cerr := cerror.ErrorMarshalling
 		cerr.LogFields = []zap.Field{
@@ -142,9 +120,8 @@ func (r *repository) Register(ctx context.Context, user *RegisterPayload) (*jwt_
 	}
 
 	lambdaFunctionName := r.config.FunctionNames.UserAPI[config.Register]
-
-	var response *lambda.InvokeOutput
-	response, err = r.lambdaClient.Invoke(ctx, &lambda.InvokeInput{
+	var invokeOutput *lambda.InvokeOutput
+	invokeOutput, err = r.lambdaClient.Invoke(ctx, &lambda.InvokeInput{
 		FunctionName:   aws.String(lambdaFunctionName),
 		InvocationType: types.InvocationTypeRequestResponse,
 		Payload:        requestPayload,
@@ -158,13 +135,12 @@ func (r *repository) Register(ctx context.Context, user *RegisterPayload) (*jwt_
 		return nil, cerr
 	}
 
-	functionError := aws.ToString(response.FunctionError)
-	if functionError == cerror.ErrorTypeUnhandled {
-		cerrFromLambda, err := cerror.UnmarshalLambdaFunctionErrorToCerror(response.Payload)
-		if err != nil {
-			return nil, err
-		}
+	cerrFromLambda := cerror.LambdaFunctionErrorToCerror(invokeOutput)
+	if err != nil {
+		return nil, err
+	}
 
+	if cerrFromLambda != nil {
 		statusCode := cerrFromLambda.HttpStatusCode
 		if statusCode == fiber.StatusConflict {
 			return nil, &cerror.CustomError{
@@ -184,7 +160,7 @@ func (r *repository) Register(ctx context.Context, user *RegisterPayload) (*jwt_
 	}
 
 	var tokens *jwt_generator.Tokens
-	err = json.Unmarshal(response.Payload, &tokens)
+	err = json.Unmarshal(invokeOutput.Payload, &tokens)
 	if err != nil {
 		cerr := cerror.ErrorUnmarshalling
 		cerr.LogFields = []zap.Field{
@@ -199,8 +175,8 @@ func (r *repository) Register(ctx context.Context, user *RegisterPayload) (*jwt_
 func (r *repository) Login(ctx context.Context, user *LoginPayload) (*jwt_generator.Tokens, error) {
 	var err error
 
-	var marshalledUser []byte
-	marshalledUser, err = json.Marshal(user)
+	var requestBody []byte
+	requestBody, err = json.Marshal(user)
 	if err != nil {
 		cerr := cerror.ErrorMarshalling
 		cerr.LogFields = []zap.Field{
@@ -209,16 +185,9 @@ func (r *repository) Login(ctx context.Context, user *LoginPayload) (*jwt_genera
 		return nil, cerr
 	}
 
-	var requestBody []byte
-	requestBody, err = json.Marshal(events.APIGatewayProxyRequest{
-		Body:            string(marshalledUser),
-		IsBase64Encoded: false,
-	})
-
 	lambdaFunctionName := r.config.FunctionNames.UserAPI[config.Login]
-
-	var response *lambda.InvokeOutput
-	response, err = r.lambdaClient.Invoke(ctx, &lambda.InvokeInput{
+	var invokeOutput *lambda.InvokeOutput
+	invokeOutput, err = r.lambdaClient.Invoke(ctx, &lambda.InvokeInput{
 		FunctionName:   aws.String(lambdaFunctionName),
 		InvocationType: types.InvocationTypeRequestResponse,
 		Payload:        requestBody,
@@ -232,13 +201,12 @@ func (r *repository) Login(ctx context.Context, user *LoginPayload) (*jwt_genera
 		return nil, cerr
 	}
 
-	functionError := aws.ToString(response.FunctionError)
-	if functionError == cerror.ErrorTypeUnhandled {
-		cerrFromLambda, err := cerror.UnmarshalLambdaFunctionErrorToCerror(response.Payload)
-		if err != nil {
-			return nil, err
-		}
+	cerrFromLambda := cerror.LambdaFunctionErrorToCerror(invokeOutput)
+	if err != nil {
+		return nil, err
+	}
 
+	if cerrFromLambda != nil {
 		statusCode := cerrFromLambda.HttpStatusCode
 		if statusCode == fiber.StatusUnauthorized {
 			return nil, &cerror.CustomError{
@@ -258,7 +226,7 @@ func (r *repository) Login(ctx context.Context, user *LoginPayload) (*jwt_genera
 	}
 
 	var tokens *jwt_generator.Tokens
-	err = json.Unmarshal(response.Payload, &tokens)
+	err = json.Unmarshal(invokeOutput.Payload, &tokens)
 	if err != nil {
 		cerr := cerror.ErrorUnmarshalling
 		cerr.LogFields = []zap.Field{
@@ -273,26 +241,13 @@ func (r *repository) Login(ctx context.Context, user *LoginPayload) (*jwt_genera
 func (r *repository) GetAccessTokenViaRefreshToken(ctx context.Context, userId, refreshToken string) (string, error) {
 	var err error
 
-	var marshalledPayload []byte
-	marshalledPayload, err = json.Marshal(map[string]string{
+	var requestBody []byte
+	requestBody, err = json.Marshal(map[string]string{
 		"userId":       userId,
 		"refreshToken": refreshToken,
 	})
 	if err != nil {
-		cerr := cerror.ErrorUnmarshalling
-		cerr.LogFields = []zap.Field{
-			zap.Error(err),
-		}
-		return "", cerr
-	}
-
-	var requestBody []byte
-	requestBody, err = json.Marshal(events.APIGatewayProxyRequest{
-		Body:            string(marshalledPayload),
-		IsBase64Encoded: false,
-	})
-	if err != nil {
-		cerr := cerror.ErrorUnmarshalling
+		cerr := cerror.ErrorMarshalling
 		cerr.LogFields = []zap.Field{
 			zap.Error(err),
 		}
@@ -300,9 +255,8 @@ func (r *repository) GetAccessTokenViaRefreshToken(ctx context.Context, userId, 
 	}
 
 	lambdaFunctionName := r.config.FunctionNames.UserAPI[config.GetAccessTokenViaRefreshToken]
-
-	var response *lambda.InvokeOutput
-	response, err = r.lambdaClient.Invoke(ctx, &lambda.InvokeInput{
+	var invokeOutput *lambda.InvokeOutput
+	invokeOutput, err = r.lambdaClient.Invoke(ctx, &lambda.InvokeInput{
 		FunctionName:   aws.String(lambdaFunctionName),
 		InvocationType: types.InvocationTypeRequestResponse,
 		Payload:        requestBody,
@@ -316,13 +270,12 @@ func (r *repository) GetAccessTokenViaRefreshToken(ctx context.Context, userId, 
 		return "", cerr
 	}
 
-	functionError := aws.ToString(response.FunctionError)
-	if functionError == cerror.ErrorTypeUnhandled {
-		cerrFromLambda, err := cerror.UnmarshalLambdaFunctionErrorToCerror(response.Payload)
-		if err != nil {
-			return "", err
-		}
+	cerrFromLambda := cerror.LambdaFunctionErrorToCerror(invokeOutput)
+	if err != nil {
+		return "", err
+	}
 
+	if cerrFromLambda != nil {
 		statusCode := cerrFromLambda.HttpStatusCode
 		if statusCode == fiber.StatusForbidden {
 			return "", &cerror.CustomError{
@@ -342,7 +295,7 @@ func (r *repository) GetAccessTokenViaRefreshToken(ctx context.Context, userId, 
 	}
 
 	var tokens *jwt_generator.Tokens
-	err = json.Unmarshal(response.Payload, &tokens)
+	err = json.Unmarshal(invokeOutput.Payload, &tokens)
 	if err != nil {
 		cerr := cerror.ErrorUnmarshalling
 		cerr.LogFields = []zap.Field{
@@ -361,23 +314,10 @@ func (r *repository) UpdateUserById(
 ) (*jwt_generator.Tokens, error) {
 	var err error
 
-	var marshalledUpdateUserPayload []byte
-	marshalledUpdateUserPayload, err = json.Marshal(map[string]any{
-		"userId": userId,
-		"user":   user,
-	})
-	if err != nil {
-		cerr := cerror.ErrorMarshalling
-		cerr.LogFields = []zap.Field{
-			zap.Error(err),
-		}
-		return nil, cerr
-	}
-
 	var requestBody []byte
-	requestBody, err = json.Marshal(events.APIGatewayProxyRequest{
-		Body:            string(marshalledUpdateUserPayload),
-		IsBase64Encoded: false,
+	requestBody, err = json.Marshal(UpdateUserByIdPayloadToUserAPI{
+		UserId: userId,
+		User:   user,
 	})
 	if err != nil {
 		cerr := cerror.ErrorMarshalling
@@ -388,9 +328,8 @@ func (r *repository) UpdateUserById(
 	}
 
 	lambdaFunctionName := r.config.FunctionNames.UserAPI[config.UpdateUserById]
-
-	var response *lambda.InvokeOutput
-	response, err = r.lambdaClient.Invoke(ctx, &lambda.InvokeInput{
+	var invokeOutput *lambda.InvokeOutput
+	invokeOutput, err = r.lambdaClient.Invoke(ctx, &lambda.InvokeInput{
 		FunctionName:   aws.String(lambdaFunctionName),
 		InvocationType: types.InvocationTypeRequestResponse,
 		Payload:        requestBody,
@@ -404,13 +343,12 @@ func (r *repository) UpdateUserById(
 		return nil, cerr
 	}
 
-	functionError := aws.ToString(response.FunctionError)
-	if functionError == cerror.ErrorTypeUnhandled {
-		cerrFromLambda, err := cerror.UnmarshalLambdaFunctionErrorToCerror(response.Payload)
-		if err != nil {
-			return nil, err
-		}
+	cerrFromLambda := cerror.LambdaFunctionErrorToCerror(invokeOutput)
+	if err != nil {
+		return nil, err
+	}
 
+	if cerrFromLambda != nil {
 		statusCode := cerrFromLambda.HttpStatusCode
 		if statusCode == fiber.StatusConflict {
 			return nil, &cerror.CustomError{
@@ -430,7 +368,7 @@ func (r *repository) UpdateUserById(
 	}
 
 	var tokens *jwt_generator.Tokens
-	err = json.Unmarshal(response.Payload, &tokens)
+	err = json.Unmarshal(invokeOutput.Payload, &tokens)
 	if err != nil {
 		cerr := cerror.ErrorUnmarshalling
 		cerr.LogFields = []zap.Field{

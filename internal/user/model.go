@@ -17,6 +17,15 @@ type GetAccessTokenViaRefreshTokenPayload struct {
 	RefreshToken string `validate:"required,jwt"`
 }
 
+type GetUserByIdPayloadToUserAPI struct {
+	UserId string `json:"userId"`
+}
+
+type UpdateUserByIdPayloadToUserAPI struct {
+	UserId string             `json:"userId"`
+	User   *UpdateUserPayload `json:"user"`
+}
+
 type UpdateUserPayload struct {
 	Name     string `json:"name,omitempty" validate:"required_without_all=Email Password"`
 	Email    string `json:"email,omitempty" validate:"required_without_all=Name Password,email"`
