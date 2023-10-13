@@ -4,7 +4,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
 	"api-gateway/pkg/cerror"
 	"api-gateway/pkg/jwt_generator"
@@ -48,7 +47,7 @@ func (h *handler) AuthenticationMiddleware(ctx *fiber.Ctx) error {
 		return &cerror.CustomError{
 			HttpStatusCode: fiber.StatusUnauthorized,
 			LogMessage:     "access token not found in authorization header",
-			LogSeverity:    zapcore.WarnLevel,
+			LogSeverity:    zap.WarnLevel,
 		}
 	}
 
@@ -68,15 +67,15 @@ func (h *handler) AuthenticationMiddleware(ctx *fiber.Ctx) error {
 	return ctx.Next()
 }
 
-func (h *handler) Register(ctx *fiber.Ctx) error {
+func (h *handler) Register(fiberCtx *fiber.Ctx) error {
 	var err error
 
 	var user *RegisterPayload
-	err = ctx.BodyParser(&user)
+	err = fiberCtx.BodyParser(&user)
 	if err != nil {
 		cerr := cerror.ErrorBadRequest
-		cerr.LogFields = []zapcore.Field{
-			zap.Any("body", ctx.Body()),
+		cerr.LogFields = []zap.Field{
+			zap.Any("body", fiberCtx.Body()),
 		}
 		return cerr
 	}
@@ -84,32 +83,33 @@ func (h *handler) Register(ctx *fiber.Ctx) error {
 	err = h.validate.Struct(user)
 	if err != nil {
 		cerr := cerror.ErrorBadRequest
-		cerr.LogFields = []zapcore.Field{
-			zap.Any("body", ctx.Body()),
+		cerr.LogFields = []zap.Field{
+			zap.Any("body", fiberCtx.Body()),
 		}
 		return cerr
 	}
 
+	requestCtx := fiberCtx.Context()
 	var tokens *jwt_generator.Tokens
-	tokens, err = h.userRepository.Register(ctx.Context(), user)
+	tokens, err = h.userRepository.Register(requestCtx, user)
 	if err != nil {
 		return err
 	}
 
-	log := logger.FromContext(ctx.Context())
+	log := logger.FromContext(requestCtx)
 	log.Info(logger.EventFinishedSuccessfully)
-	return ctx.Status(fiber.StatusCreated).JSON(tokens)
+	return fiberCtx.Status(fiber.StatusCreated).JSON(tokens)
 }
 
-func (h *handler) Login(ctx *fiber.Ctx) error {
+func (h *handler) Login(fiberCtx *fiber.Ctx) error {
 	var err error
 
 	var user *LoginPayload
-	err = ctx.BodyParser(&user)
+	err = fiberCtx.BodyParser(&user)
 	if err != nil {
 		cerr := cerror.ErrorBadRequest
-		cerr.LogFields = []zapcore.Field{
-			zap.Any("body", ctx.Body()),
+		cerr.LogFields = []zap.Field{
+			zap.Any("body", fiberCtx.Body()),
 		}
 		return cerr
 	}
@@ -117,33 +117,34 @@ func (h *handler) Login(ctx *fiber.Ctx) error {
 	err = h.validate.Struct(user)
 	if err != nil {
 		cerr := cerror.ErrorBadRequest
-		cerr.LogFields = []zapcore.Field{
+		cerr.LogFields = []zap.Field{
 			zap.Any("credentials", user),
 		}
 		return cerr
 	}
 
+	requestCtx := fiberCtx.Context()
 	var tokens *jwt_generator.Tokens
-	tokens, err = h.userRepository.Login(ctx.Context(), user)
+	tokens, err = h.userRepository.Login(requestCtx, user)
 	if err != nil {
 		return err
 	}
 
-	log := logger.FromContext(ctx.Context())
+	log := logger.FromContext(requestCtx)
 	log.Info(logger.EventFinishedSuccessfully)
-	return ctx.Status(fiber.StatusOK).JSON(tokens)
+	return fiberCtx.Status(fiber.StatusOK).JSON(tokens)
 }
 
-func (h *handler) GetAccessTokenViaRefreshToken(ctx *fiber.Ctx) error {
+func (h *handler) GetAccessTokenViaRefreshToken(fiberCtx *fiber.Ctx) error {
 	var err error
 
-	refreshToken := ctx.Params("refreshToken")
-	userId, isOk := ctx.Locals(ContextKeyUserId).(string)
+	refreshToken := fiberCtx.Params("refreshToken")
+	userId, isOk := fiberCtx.Locals(ContextKeyUserId).(string)
 	if !isOk || userId == "" {
 		return &cerror.CustomError{
 			HttpStatusCode: fiber.StatusInternalServerError,
 			LogMessage:     "userId not found in context",
-			LogSeverity:    zapcore.ErrorLevel,
+			LogSeverity:    zap.ErrorLevel,
 		}
 	}
 
@@ -152,37 +153,38 @@ func (h *handler) GetAccessTokenViaRefreshToken(ctx *fiber.Ctx) error {
 	})
 	if err != nil {
 		cerr := cerror.ErrorBadRequest
-		cerr.LogFields = []zapcore.Field{
+		cerr.LogFields = []zap.Field{
 			zap.String("userId", userId),
 			zap.String("refreshToken", refreshToken),
 		}
 		return cerr
 	}
 
+	requestCtx := fiberCtx.Context()
 	var accessToken string
-	accessToken, err = h.userRepository.GetAccessTokenViaRefreshToken(ctx.Context(), userId, refreshToken)
+	accessToken, err = h.userRepository.GetAccessTokenViaRefreshToken(requestCtx, userId, refreshToken)
 	if err != nil {
 		return err
 	}
 
-	log := logger.FromContext(ctx.Context())
+	log := logger.FromContext(requestCtx)
 	log.Info(logger.EventFinishedSuccessfully)
-	return ctx.
+	return fiberCtx.
 		Status(fiber.StatusOK).
 		JSON(fiber.Map{
 			"accessToken": accessToken,
 		})
 }
 
-func (h *handler) UpdateUserById(ctx *fiber.Ctx) error {
+func (h *handler) UpdateUserById(fiberCtx *fiber.Ctx) error {
 	var err error
 
 	var user *UpdateUserPayload
-	err = ctx.BodyParser(&user)
+	err = fiberCtx.BodyParser(&user)
 	if err != nil {
 		cerr := cerror.ErrorBadRequest
 		cerr.LogFields = []zap.Field{
-			zap.Any("body", ctx.Body()),
+			zap.Any("body", fiberCtx.Body()),
 		}
 		return cerr
 	}
@@ -190,28 +192,29 @@ func (h *handler) UpdateUserById(ctx *fiber.Ctx) error {
 	err = h.validate.Struct(user)
 	if err != nil {
 		cerr := cerror.ErrorBadRequest
-		cerr.LogFields = []zapcore.Field{
-			zap.Any("body", ctx.Body()),
+		cerr.LogFields = []zap.Field{
+			zap.Any("body", fiberCtx.Body()),
 		}
 		return cerr
 	}
 
-	userId, isOk := ctx.Locals(ContextKeyUserId).(string)
+	userId, isOk := fiberCtx.Locals(ContextKeyUserId).(string)
 	if !isOk || userId == "" {
 		return &cerror.CustomError{
 			HttpStatusCode: fiber.StatusInternalServerError,
 			LogMessage:     "empty user id",
-			LogSeverity:    zapcore.ErrorLevel,
+			LogSeverity:    zap.ErrorLevel,
 		}
 	}
 
+	requestCtx := fiberCtx.Context()
 	var tokens *jwt_generator.Tokens
-	tokens, err = h.userRepository.UpdateUserById(ctx.Context(), userId, user)
+	tokens, err = h.userRepository.UpdateUserById(requestCtx, userId, user)
 	if err != nil {
 		return err
 	}
 
-	log := logger.FromContext(ctx.Context())
+	log := logger.FromContext(requestCtx)
 	log.Info(logger.EventFinishedSuccessfully)
-	return ctx.Status(fiber.StatusOK).JSON(tokens)
+	return fiberCtx.Status(fiber.StatusOK).JSON(tokens)
 }

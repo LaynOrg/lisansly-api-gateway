@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
 	"api-gateway/pkg/aws_wrapper"
 	"api-gateway/pkg/cerror"
@@ -233,7 +232,7 @@ func TestRepository_Register(t *testing.T) {
 			&cerror.CustomError{
 				HttpStatusCode: http.StatusInternalServerError,
 				LogMessage:     "user-api return error",
-				LogSeverity:    zapcore.ErrorLevel,
+				LogSeverity:    zap.ErrorLevel,
 			},
 			cerr,
 		)

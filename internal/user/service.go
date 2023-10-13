@@ -3,8 +3,8 @@ package user
 import (
 	"context"
 	"errors"
+	"net/http"
 
-	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap/zapcore"
 
 	"api-gateway/pkg/cerror"
@@ -37,7 +37,7 @@ func (s *service) VerifyAccessToken(
 	jwtClaims, err = s.jwtGenerator.VerifyAccessToken(accessToken)
 	if err != nil {
 		return nil, &cerror.CustomError{
-			HttpStatusCode: fiber.StatusUnauthorized,
+			HttpStatusCode: http.StatusUnauthorized,
 			LogMessage:     err.Error(),
 			LogSeverity:    zapcore.WarnLevel,
 		}
@@ -49,9 +49,9 @@ func (s *service) VerifyAccessToken(
 		var cerr *cerror.CustomError
 		errors.As(err, &cerr)
 
-		if cerr.HttpStatusCode == fiber.StatusNotFound {
+		if cerr.HttpStatusCode == http.StatusNotFound {
 			return nil, &cerror.CustomError{
-				HttpStatusCode: fiber.StatusUnauthorized,
+				HttpStatusCode: http.StatusUnauthorized,
 				LogMessage:     "user not found email in jwt claims",
 				LogSeverity:    zapcore.WarnLevel,
 			}

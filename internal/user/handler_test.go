@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap"
 
 	"api-gateway/pkg/cerror"
 	"api-gateway/pkg/jwt_generator"
@@ -102,7 +102,7 @@ func TestHandler_AuthenticationMiddleware(t *testing.T) {
 			Return(nil, &cerror.CustomError{
 				HttpStatusCode: fiber.StatusUnauthorized,
 				LogMessage:     "invalid token",
-				LogSeverity:    zapcore.ErrorLevel,
+				LogSeverity:    zap.ErrorLevel,
 			})
 
 		h := NewHandler(mockservice, nil)
@@ -294,7 +294,7 @@ func TestHandler_Register(t *testing.T) {
 			Return(nil, &cerror.CustomError{
 				HttpStatusCode: http.StatusInternalServerError,
 				LogMessage:     "error occurred while registering user",
-				LogSeverity:    zapcore.ErrorLevel,
+				LogSeverity:    zap.ErrorLevel,
 			})
 
 		h := NewHandler(nil, mockUserRepository)
@@ -438,7 +438,7 @@ func TestHandler_Login(t *testing.T) {
 			nil, &cerror.CustomError{
 				HttpStatusCode: fiber.StatusUnauthorized,
 				LogMessage:     "invalid credentials",
-				LogSeverity:    zapcore.WarnLevel,
+				LogSeverity:    zap.WarnLevel,
 			})
 
 		h := NewHandler(nil, mockUserRepository)
@@ -550,7 +550,7 @@ func TestHandler_GetAccessTokenByRefreshToken(t *testing.T) {
 			&cerror.CustomError{
 				HttpStatusCode: fiber.StatusUnauthorized,
 				LogMessage:     "invalid refresh token",
-				LogSeverity:    zapcore.WarnLevel,
+				LogSeverity:    zap.WarnLevel,
 			})
 
 		h := NewHandler(mockservice, mockUserRepository)
@@ -769,7 +769,7 @@ func TestHandler_UpdateUserById(t *testing.T) {
 		mockUserRepository.EXPECT().UpdateUserById(gomock.Any(), TestUserId, TestUserModel).Return(nil, &cerror.CustomError{
 			HttpStatusCode: fiber.StatusConflict,
 			LogMessage:     "already exists",
-			LogSeverity:    zapcore.WarnLevel,
+			LogSeverity:    zap.WarnLevel,
 		})
 
 		h := NewHandler(mockservice, mockUserRepository)

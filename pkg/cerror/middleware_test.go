@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 func TestMiddleware(t *testing.T) {
@@ -22,7 +21,7 @@ func TestMiddleware(t *testing.T) {
 			return &CustomError{
 				HttpStatusCode: fiber.StatusInternalServerError,
 				LogMessage:     "something went wrong",
-				LogSeverity:    zapcore.ErrorLevel,
+				LogSeverity:    zap.ErrorLevel,
 				LogFields: []zap.Field{
 					zap.String("key", "value"),
 				},

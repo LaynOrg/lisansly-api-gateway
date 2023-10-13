@@ -3,14 +3,13 @@ package user
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
 	"github.com/goccy/go-json"
-	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
 	"api-gateway/pkg/aws_wrapper"
 	"api-gateway/pkg/cerror"
@@ -70,25 +69,21 @@ func (r *repository) GetUserById(ctx context.Context, userId string) (*Document,
 	}
 
 	cerrFromLambda := cerror.LambdaFunctionErrorToCerror(invokeOutput)
-	if err != nil {
-		return nil, err
-	}
-
 	if cerrFromLambda != nil {
 		statusCode := cerrFromLambda.HttpStatusCode
-		if statusCode == fiber.StatusNotFound {
+		if statusCode == http.StatusNotFound {
 			return nil, &cerror.CustomError{
-				HttpStatusCode: fiber.StatusNotFound,
+				HttpStatusCode: http.StatusNotFound,
 				LogMessage:     "user not found",
-				LogSeverity:    zapcore.ErrorLevel,
+				LogSeverity:    zap.ErrorLevel,
 			}
 		}
 
-		if statusCode != fiber.StatusOK {
+		if statusCode != http.StatusOK {
 			return nil, &cerror.CustomError{
 				HttpStatusCode: cerrFromLambda.HttpStatusCode,
 				LogMessage:     "user-api return error",
-				LogSeverity:    zapcore.ErrorLevel,
+				LogSeverity:    zap.ErrorLevel,
 			}
 		}
 	}
@@ -136,25 +131,21 @@ func (r *repository) Register(ctx context.Context, user *RegisterPayload) (*jwt_
 	}
 
 	cerrFromLambda := cerror.LambdaFunctionErrorToCerror(invokeOutput)
-	if err != nil {
-		return nil, err
-	}
-
 	if cerrFromLambda != nil {
 		statusCode := cerrFromLambda.HttpStatusCode
-		if statusCode == fiber.StatusConflict {
+		if statusCode == http.StatusConflict {
 			return nil, &cerror.CustomError{
-				HttpStatusCode: fiber.StatusConflict,
+				HttpStatusCode: http.StatusConflict,
 				LogMessage:     "user already exist",
-				LogSeverity:    zapcore.WarnLevel,
+				LogSeverity:    zap.WarnLevel,
 			}
 		}
 
-		if statusCode != fiber.StatusCreated {
+		if statusCode != http.StatusCreated {
 			return nil, &cerror.CustomError{
 				HttpStatusCode: cerrFromLambda.HttpStatusCode,
 				LogMessage:     "user-api return error",
-				LogSeverity:    zapcore.ErrorLevel,
+				LogSeverity:    zap.ErrorLevel,
 			}
 		}
 	}
@@ -202,25 +193,21 @@ func (r *repository) Login(ctx context.Context, user *LoginPayload) (*jwt_genera
 	}
 
 	cerrFromLambda := cerror.LambdaFunctionErrorToCerror(invokeOutput)
-	if err != nil {
-		return nil, err
-	}
-
 	if cerrFromLambda != nil {
 		statusCode := cerrFromLambda.HttpStatusCode
-		if statusCode == fiber.StatusUnauthorized {
+		if statusCode == http.StatusUnauthorized {
 			return nil, &cerror.CustomError{
-				HttpStatusCode: fiber.StatusUnauthorized,
+				HttpStatusCode: http.StatusUnauthorized,
 				LogMessage:     "credentials is invalid",
-				LogSeverity:    zapcore.WarnLevel,
+				LogSeverity:    zap.WarnLevel,
 			}
 		}
 
-		if statusCode != fiber.StatusOK {
+		if statusCode != http.StatusOK {
 			return nil, &cerror.CustomError{
 				HttpStatusCode: cerrFromLambda.HttpStatusCode,
 				LogMessage:     "user-api return error",
-				LogSeverity:    zapcore.ErrorLevel,
+				LogSeverity:    zap.ErrorLevel,
 			}
 		}
 	}
@@ -271,25 +258,21 @@ func (r *repository) GetAccessTokenViaRefreshToken(ctx context.Context, userId, 
 	}
 
 	cerrFromLambda := cerror.LambdaFunctionErrorToCerror(invokeOutput)
-	if err != nil {
-		return "", err
-	}
-
 	if cerrFromLambda != nil {
 		statusCode := cerrFromLambda.HttpStatusCode
-		if statusCode == fiber.StatusForbidden {
+		if statusCode == http.StatusForbidden {
 			return "", &cerror.CustomError{
-				HttpStatusCode: fiber.StatusForbidden,
+				HttpStatusCode: http.StatusForbidden,
 				LogMessage:     "refresh token expired",
-				LogSeverity:    zapcore.WarnLevel,
+				LogSeverity:    zap.WarnLevel,
 			}
 		}
 
-		if statusCode != fiber.StatusOK {
+		if statusCode != http.StatusOK {
 			return "", &cerror.CustomError{
 				HttpStatusCode: cerrFromLambda.HttpStatusCode,
 				LogMessage:     "user-api return error",
-				LogSeverity:    zapcore.ErrorLevel,
+				LogSeverity:    zap.ErrorLevel,
 			}
 		}
 	}
@@ -344,25 +327,21 @@ func (r *repository) UpdateUserById(
 	}
 
 	cerrFromLambda := cerror.LambdaFunctionErrorToCerror(invokeOutput)
-	if err != nil {
-		return nil, err
-	}
-
 	if cerrFromLambda != nil {
 		statusCode := cerrFromLambda.HttpStatusCode
-		if statusCode == fiber.StatusConflict {
+		if statusCode == http.StatusConflict {
 			return nil, &cerror.CustomError{
-				HttpStatusCode: fiber.StatusConflict,
+				HttpStatusCode: http.StatusConflict,
 				LogMessage:     "user with this email already exists",
-				LogSeverity:    zapcore.WarnLevel,
+				LogSeverity:    zap.WarnLevel,
 			}
 		}
 
-		if statusCode != fiber.StatusOK {
+		if statusCode != http.StatusOK {
 			return nil, &cerror.CustomError{
 				HttpStatusCode: cerrFromLambda.HttpStatusCode,
 				LogMessage:     "user-api return error",
-				LogSeverity:    zapcore.ErrorLevel,
+				LogSeverity:    zap.ErrorLevel,
 			}
 		}
 	}

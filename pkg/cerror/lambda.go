@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/goccy/go-json"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 func LambdaFunctionErrorToCerror(invokeOutput *lambda.InvokeOutput) *CustomError {
@@ -36,7 +35,7 @@ func LambdaFunctionErrorToCerror(invokeOutput *lambda.InvokeOutput) *CustomError
 				return &CustomError{
 					HttpStatusCode: http.StatusInternalServerError,
 					LogMessage:     "an error occurred it is not type of cerror",
-					LogSeverity:    zapcore.ErrorLevel,
+					LogSeverity:    zap.ErrorLevel,
 					LogFields: []zap.Field{
 						zap.String("invokeOutputPayload", string(invokeOutput.Payload)),
 					},
