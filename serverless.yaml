@@ -1,19 +1,15 @@
-service: API-Gateway
+service: ApiGateway
 frameworkVersion: "3"
 
 provider:
   name: aws
   runtime: provided.al2
   architecture: arm64
-  region: us-west-1
+  region: ${file(config.${opt:stage, self:provider.stage}.json):region}
   environment: ${file(env.${opt:stage, self:provider.stage}.json)}
   iam:
     role:
-      statements:
-        - Effect: Allow
-          Action:
-            - lambda:InvokeFunction
-          Resource: "*"
+      statements: ${file(config.${opt:stage, self:provider.stage}.json):iamRoleStatements}
 
 package:
   individually: true
