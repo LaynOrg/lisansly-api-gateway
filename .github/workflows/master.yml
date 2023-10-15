@@ -120,7 +120,7 @@ jobs:
       - name: Run security analysis with gosec
         uses: securego/gosec@master
         with:
-          args: ./...
+          args: -exclude-generated ./...
 
   #  can-i-deploy-to-dev:
   #    needs:
