@@ -2,10 +2,12 @@
   "name": "api-gateway",
   "version": "1.0.0",
   "main": "main.go",
-  "repository": "git@github.com:Lisansly/api-gateway.git",
-  "author": "Lisansly",
+  "author": "Layn",
+  "repository": "git@github.com:Layn/lisansly-api-gateway.git",
+  "homepage": "https://github.com/Layn/lisansly-api-gateway",
+  "readme": "https://github.com/Layn/lisansly-api-gateway#readme",
   "license": "MIT",
   "devDependencies": {
-    "serverless": "^3.31.0"
+    "serverless": "^3.35.2"
   }
 }
