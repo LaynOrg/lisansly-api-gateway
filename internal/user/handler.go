@@ -40,8 +40,7 @@ func (h *handler) AuthenticationMiddleware(ctx *fiber.Ctx) error {
 		With(zap.String("eventName", "authenticationMiddleware"))
 	logger.InjectContext(ctx.Context(), log)
 
-	requestHeaders := ctx.GetReqHeaders()
-	authorizationHeader := requestHeaders[fiber.HeaderAuthorization]
+	authorizationHeader := ctx.Get(fiber.HeaderAuthorization)
 	authorizationHeaderLength := len([]rune(authorizationHeader))
 	if authorizationHeaderLength == 0 {
 		return &cerror.CustomError{
