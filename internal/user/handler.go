@@ -41,7 +41,7 @@ func (h *handler) AuthenticationMiddleware(ctx *fiber.Ctx) error {
 	logger.InjectContext(ctx.Context(), log)
 
 	authorizationHeader := ctx.Get(fiber.HeaderAuthorization)
-	authorizationHeaderLength := len([]rune(authorizationHeader))
+	authorizationHeaderLength := len(authorizationHeader)
 	if authorizationHeaderLength == 0 {
 		return &cerror.CustomError{
 			HttpStatusCode: fiber.StatusUnauthorized,
@@ -184,6 +184,7 @@ func (h *handler) UpdateUserById(fiberCtx *fiber.Ctx) error {
 		cerr := cerror.ErrorBadRequest
 		cerr.LogFields = []zap.Field{
 			zap.Any("body", fiberCtx.Body()),
+			zap.Error(err),
 		}
 		return cerr
 	}
@@ -193,6 +194,7 @@ func (h *handler) UpdateUserById(fiberCtx *fiber.Ctx) error {
 		cerr := cerror.ErrorBadRequest
 		cerr.LogFields = []zap.Field{
 			zap.Any("body", fiberCtx.Body()),
+			zap.Error(err),
 		}
 		return cerr
 	}
