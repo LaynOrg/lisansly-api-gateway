@@ -7,6 +7,8 @@ import (
 )
 
 var (
+	ErrorTypeUnhandled = "Unhandled"
+
 	ErrorBadRequest = &CustomError{
 		HttpStatusCode: http.StatusBadRequest,
 		LogMessage:     "malformed request body or query parameter",

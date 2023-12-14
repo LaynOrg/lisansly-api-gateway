@@ -96,7 +96,7 @@ func (h *handler) Register(fiberCtx *fiber.Ctx) error {
 	}
 
 	log := logger.FromContext(requestCtx)
-	log.Info(logger.EventFinishedSuccessfully)
+	log.Info(logger.EventFinished)
 	return fiberCtx.Status(fiber.StatusCreated).JSON(tokens)
 }
 
@@ -130,7 +130,7 @@ func (h *handler) Login(fiberCtx *fiber.Ctx) error {
 	}
 
 	log := logger.FromContext(requestCtx)
-	log.Info(logger.EventFinishedSuccessfully)
+	log.Info(logger.EventFinished)
 	return fiberCtx.Status(fiber.StatusOK).JSON(tokens)
 }
 
@@ -167,7 +167,7 @@ func (h *handler) GetAccessTokenViaRefreshToken(fiberCtx *fiber.Ctx) error {
 	}
 
 	log := logger.FromContext(requestCtx)
-	log.Info(logger.EventFinishedSuccessfully)
+	log.Info(logger.EventFinished)
 	return fiberCtx.
 		Status(fiber.StatusOK).
 		JSON(fiber.Map{
@@ -178,7 +178,7 @@ func (h *handler) GetAccessTokenViaRefreshToken(fiberCtx *fiber.Ctx) error {
 func (h *handler) UpdateUserById(fiberCtx *fiber.Ctx) error {
 	var err error
 
-	var user *UpdateUserPayload
+	var user *UpdateUserByIdPayload
 	err = fiberCtx.BodyParser(&user)
 	if err != nil {
 		cerr := cerror.ErrorBadRequest
@@ -208,14 +208,21 @@ func (h *handler) UpdateUserById(fiberCtx *fiber.Ctx) error {
 		}
 	}
 
+	user = &UpdateUserByIdPayload{
+		Id:       userId,
+		Name:     user.Name,
+		Email:    user.Email,
+		Password: user.Password,
+	}
+
 	requestCtx := fiberCtx.Context()
 	var tokens *jwt_generator.Tokens
-	tokens, err = h.userRepository.UpdateUserById(requestCtx, userId, user)
+	tokens, err = h.userRepository.UpdateUserById(requestCtx, user)
 	if err != nil {
 		return err
 	}
 
 	log := logger.FromContext(requestCtx)
-	log.Info(logger.EventFinishedSuccessfully)
+	log.Info(logger.EventFinished)
 	return fiberCtx.Status(fiber.StatusOK).JSON(tokens)
 }

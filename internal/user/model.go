@@ -2,6 +2,11 @@ package user
 
 import "time"
 
+const (
+	PlanDefault      = "free"
+	ContextKeyUserId = "UserId"
+)
+
 type RegisterPayload struct {
 	Name     string `json:"name" validate:"required"`
 	Email    string `json:"email" validate:"required,email"`
@@ -21,12 +26,8 @@ type GetUserByIdPayloadToUserAPI struct {
 	UserId string `json:"userId"`
 }
 
-type UpdateUserByIdPayloadToUserAPI struct {
-	UserId string             `json:"userId"`
-	User   *UpdateUserPayload `json:"user"`
-}
-
-type UpdateUserPayload struct {
+type UpdateUserByIdPayload struct {
+	Id       string `json:"userId,omitempty"`
 	Name     string `json:"name,omitempty" validate:"required_without_all=Email Password"`
 	Email    string `json:"email,omitempty" validate:"required_without_all=Name Password,email"`
 	Password string `json:"password,omitempty" validate:"required_without_all=Name Email,gte=10"`

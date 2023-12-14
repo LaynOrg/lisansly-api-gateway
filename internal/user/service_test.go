@@ -23,7 +23,7 @@ var (
 	TestJwtClaims = &jwt_generator.Claims{
 		Name:  TestUserName,
 		Email: TestUserPassword,
-		Role:  RoleUser,
+		Plan:  PlanDefault,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        uuid.New().String(),
 			Issuer:    jwt_generator.IssuerDefault,
@@ -59,7 +59,7 @@ func TestService_VerifyAccessToken(t *testing.T) {
 				Name:      TestUserName,
 				Email:     TestUserEmail,
 				Password:  TestUserPassword,
-				Role:      RoleUser,
+				Role:      PlanDefault,
 				CreatedAt: time.Now().UTC(),
 			}, nil)
 

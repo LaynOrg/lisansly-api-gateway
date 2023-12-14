@@ -47,7 +47,7 @@ func (jwtGenerator *jwtGenerator) GenerateAccessToken(
 	claims := Claims{
 		Name:  name,
 		Email: email,
-		Role:  RoleUser,
+		Plan:  PlanDefault,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        uuid.New().String(),
 			Subject:   userId,

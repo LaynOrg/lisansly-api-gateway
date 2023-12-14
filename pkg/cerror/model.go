@@ -10,10 +10,6 @@ type CustomError struct {
 	LogFields      []zapcore.Field `json:"-"`
 }
 
-const (
-	ErrorTypeUnhandled string = "Unhandled"
-)
-
 type LambdaFunctionErrorPayload struct {
 	ErrorMessage string `json:"errorMessage"`
 	ErrorType    string `json:"errorType"`

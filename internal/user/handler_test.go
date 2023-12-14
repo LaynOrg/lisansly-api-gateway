@@ -45,7 +45,7 @@ func TestHandler_AuthenticationMiddleware(t *testing.T) {
 			Return(&jwt_generator.Claims{
 				Name:  TestUserName,
 				Email: TestUserEmail,
-				Role:  RoleUser,
+				Plan:  PlanDefault,
 				RegisteredClaims: jwt.RegisteredClaims{
 					ID:        uuid.New().String(),
 					Issuer:    jwt_generator.IssuerDefault,
@@ -584,7 +584,8 @@ func TestHandler_GetAccessTokenByRefreshToken(t *testing.T) {
 }
 
 func TestHandler_UpdateUserById(t *testing.T) {
-	TestUserModel := &UpdateUserPayload{
+	TestUserModel := &UpdateUserByIdPayload{
+		Id:       TestUserId,
 		Name:     TestUserName,
 		Email:    TestUserEmail,
 		Password: TestUserPassword,
@@ -598,7 +599,7 @@ func TestHandler_UpdateUserById(t *testing.T) {
 		mockservice.EXPECT().VerifyAccessToken(gomock.Any(), TestToken).Return(TestJwtClaims, nil)
 
 		mockUserRepository := NewMockRepository(mockController)
-		mockUserRepository.EXPECT().UpdateUserById(gomock.Any(), TestUserId, TestUserModel).Return(&jwt_generator.Tokens{
+		mockUserRepository.EXPECT().UpdateUserById(gomock.Any(), TestUserModel).Return(&jwt_generator.Tokens{
 			AccessToken:  TestToken,
 			RefreshToken: TestToken,
 		}, nil)
@@ -671,7 +672,7 @@ func TestHandler_UpdateUserById(t *testing.T) {
 			})
 			app.Patch("/user", h.AuthenticationMiddleware, h.UpdateUserById)
 
-			reqBody, err := json.Marshal(&UpdateUserPayload{
+			reqBody, err := json.Marshal(&UpdateUserByIdPayload{
 				Name:     "",
 				Email:    "",
 				Password: "",
@@ -705,7 +706,7 @@ func TestHandler_UpdateUserById(t *testing.T) {
 			})
 			app.Patch("/user", h.AuthenticationMiddleware, h.UpdateUserById)
 
-			reqBody, err := json.Marshal(&UpdateUserPayload{
+			reqBody, err := json.Marshal(&UpdateUserByIdPayload{
 				Email: "invalid",
 			})
 			require.NoError(t, err)
@@ -738,7 +739,7 @@ func TestHandler_UpdateUserById(t *testing.T) {
 			})
 			app.Patch("/user", h.AuthenticationMiddleware, h.UpdateUserById)
 
-			reqBody, err := json.Marshal(&UpdateUserPayload{
+			reqBody, err := json.Marshal(&UpdateUserByIdPayload{
 				Password: "123",
 			})
 			require.NoError(t, err)
@@ -766,7 +767,7 @@ func TestHandler_UpdateUserById(t *testing.T) {
 		mockservice.EXPECT().VerifyAccessToken(gomock.Any(), TestToken).Return(TestJwtClaims, nil)
 
 		mockUserRepository := NewMockRepository(mockController)
-		mockUserRepository.EXPECT().UpdateUserById(gomock.Any(), TestUserId, TestUserModel).Return(nil, &cerror.CustomError{
+		mockUserRepository.EXPECT().UpdateUserById(gomock.Any(), TestUserModel).Return(nil, &cerror.CustomError{
 			HttpStatusCode: fiber.StatusConflict,
 			LogMessage:     "already exists",
 			LogSeverity:    zap.WarnLevel,

@@ -22,7 +22,7 @@ type Repository interface {
 	Login(ctx context.Context, user *LoginPayload) (*jwt_generator.Tokens, error)
 	GetUserById(ctx context.Context, userId string) (*Document, error)
 	GetAccessTokenViaRefreshToken(ctx context.Context, userId, refreshToken string) (string, error)
-	UpdateUserById(ctx context.Context, userId string, user *UpdateUserPayload) (*jwt_generator.Tokens, error)
+	UpdateUserById(ctx context.Context, user *UpdateUserByIdPayload) (*jwt_generator.Tokens, error)
 }
 
 type repository struct {
@@ -292,16 +292,12 @@ func (r *repository) GetAccessTokenViaRefreshToken(ctx context.Context, userId, 
 
 func (r *repository) UpdateUserById(
 	ctx context.Context,
-	userId string,
-	user *UpdateUserPayload,
+	user *UpdateUserByIdPayload,
 ) (*jwt_generator.Tokens, error) {
 	var err error
 
 	var requestBody []byte
-	requestBody, err = json.Marshal(UpdateUserByIdPayloadToUserAPI{
-		UserId: userId,
-		User:   user,
-	})
+	requestBody, err = json.Marshal(user)
 	if err != nil {
 		cerr := cerror.ErrorMarshalling
 		cerr.LogFields = []zap.Field{

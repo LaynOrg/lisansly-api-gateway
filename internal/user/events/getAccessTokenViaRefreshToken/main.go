@@ -19,14 +19,9 @@ import (
 func main() {
 	var err error
 
-	logProd, err := zap.NewProduction()
+	logProd, _ := zap.NewProduction()
+	defer logProd.Sync()
 	log := logProd.Sugar()
-	defer func(log *zap.SugaredLogger) {
-		err := log.Sync()
-		if err != nil {
-			panic(err)
-		}
-	}(log)
 
 	var awsSdkConfig aws.Config
 	awsSdkConfig, err = awsConfig.LoadDefaultConfig(context.TODO())

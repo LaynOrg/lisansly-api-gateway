@@ -559,7 +559,7 @@ func TestRepository_GetUserById(t *testing.T) {
 			Name:      TestUserName,
 			Email:     TestUserEmail,
 			Password:  TestUserPassword,
-			Role:      RoleUser,
+			Role:      PlanDefault,
 			CreatedAt: now,
 		})
 		require.NoError(t, err)
@@ -597,7 +597,7 @@ func TestRepository_GetUserById(t *testing.T) {
 				Name:      TestUserName,
 				Email:     TestUserEmail,
 				Password:  TestUserPassword,
-				Role:      RoleUser,
+				Role:      PlanDefault,
 				CreatedAt: now,
 			},
 			user,
@@ -1024,13 +1024,11 @@ func TestRepository_UpdateUserById(t *testing.T) {
 	defer mockController.Finish()
 
 	t.Run("happy path", func(t *testing.T) {
-		requestBody, err := json.Marshal(UpdateUserByIdPayloadToUserAPI{
-			UserId: TestUserId,
-			User: &UpdateUserPayload{
-				Name:     TestUserId,
-				Email:    TestUserEmail,
-				Password: TestUserPassword,
-			},
+		requestBody, err := json.Marshal(UpdateUserByIdPayload{
+			Id:       TestUserId,
+			Name:     TestUserId,
+			Email:    TestUserEmail,
+			Password: TestUserPassword,
 		})
 		require.NoError(t, err)
 
@@ -1067,8 +1065,8 @@ func TestRepository_UpdateUserById(t *testing.T) {
 
 		tokens, cerr := repository.UpdateUserById(
 			ctx,
-			TestUserId,
-			&UpdateUserPayload{
+			&UpdateUserByIdPayload{
+				Id:       TestUserId,
 				Name:     TestUserId,
 				Email:    TestUserEmail,
 				Password: TestUserPassword,
@@ -1086,13 +1084,11 @@ func TestRepository_UpdateUserById(t *testing.T) {
 	})
 
 	t.Run("when user api return error should return it", func(t *testing.T) {
-		requestBody, err := json.Marshal(UpdateUserByIdPayloadToUserAPI{
-			UserId: TestUserId,
-			User: &UpdateUserPayload{
-				Name:     TestUserId,
-				Email:    TestUserEmail,
-				Password: TestUserPassword,
-			},
+		requestBody, err := json.Marshal(UpdateUserByIdPayload{
+			Id:       TestUserId,
+			Name:     TestUserId,
+			Email:    TestUserEmail,
+			Password: TestUserPassword,
 		})
 		require.NoError(t, err)
 
@@ -1120,8 +1116,8 @@ func TestRepository_UpdateUserById(t *testing.T) {
 
 		tokens, err := repository.UpdateUserById(
 			ctx,
-			TestUserId,
-			&UpdateUserPayload{
+			&UpdateUserByIdPayload{
+				Id:       TestUserId,
 				Name:     TestUserId,
 				Email:    TestUserEmail,
 				Password: TestUserPassword,
@@ -1137,13 +1133,11 @@ func TestRepository_UpdateUserById(t *testing.T) {
 	})
 
 	t.Run("when user api return conflict status code should return error", func(t *testing.T) {
-		requestBody, err := json.Marshal(UpdateUserByIdPayloadToUserAPI{
-			UserId: TestUserId,
-			User: &UpdateUserPayload{
-				Name:     TestUserId,
-				Email:    TestUserEmail,
-				Password: TestUserPassword,
-			},
+		requestBody, err := json.Marshal(UpdateUserByIdPayload{
+			Id:       TestUserId,
+			Name:     TestUserId,
+			Email:    TestUserEmail,
+			Password: TestUserPassword,
 		})
 		require.NoError(t, err)
 
@@ -1186,8 +1180,8 @@ func TestRepository_UpdateUserById(t *testing.T) {
 
 		tokens, cerr := repository.UpdateUserById(
 			ctx,
-			TestUserId,
-			&UpdateUserPayload{
+			&UpdateUserByIdPayload{
+				Id:       TestUserId,
 				Name:     TestUserId,
 				Email:    TestUserEmail,
 				Password: TestUserPassword,
@@ -1203,13 +1197,11 @@ func TestRepository_UpdateUserById(t *testing.T) {
 	})
 
 	t.Run("when user api return ambiguous status code should return error", func(t *testing.T) {
-		requestBody, err := json.Marshal(UpdateUserByIdPayloadToUserAPI{
-			UserId: TestUserId,
-			User: &UpdateUserPayload{
-				Name:     TestUserId,
-				Email:    TestUserEmail,
-				Password: TestUserPassword,
-			},
+		requestBody, err := json.Marshal(UpdateUserByIdPayload{
+			Id:       TestUserId,
+			Name:     TestUserId,
+			Email:    TestUserEmail,
+			Password: TestUserPassword,
 		})
 		require.NoError(t, err)
 
@@ -1252,8 +1244,8 @@ func TestRepository_UpdateUserById(t *testing.T) {
 
 		tokens, cerr := repository.UpdateUserById(
 			ctx,
-			TestUserId,
-			&UpdateUserPayload{
+			&UpdateUserByIdPayload{
+				Id:       TestUserId,
 				Name:     TestUserId,
 				Email:    TestUserEmail,
 				Password: TestUserPassword,
@@ -1269,13 +1261,11 @@ func TestRepository_UpdateUserById(t *testing.T) {
 	})
 
 	t.Run("when user api return ambiguous response body should return error", func(t *testing.T) {
-		requestBody, err := json.Marshal(UpdateUserByIdPayloadToUserAPI{
-			UserId: TestUserId,
-			User: &UpdateUserPayload{
-				Name:     TestUserId,
-				Email:    TestUserEmail,
-				Password: TestUserPassword,
-			},
+		requestBody, err := json.Marshal(UpdateUserByIdPayload{
+			Id:       TestUserId,
+			Name:     TestUserId,
+			Email:    TestUserEmail,
+			Password: TestUserPassword,
 		})
 		require.NoError(t, err)
 
@@ -1306,8 +1296,8 @@ func TestRepository_UpdateUserById(t *testing.T) {
 
 		tokens, cerr := repository.UpdateUserById(
 			ctx,
-			TestUserId,
-			&UpdateUserPayload{
+			&UpdateUserByIdPayload{
+				Id:       TestUserId,
 				Name:     TestUserId,
 				Email:    TestUserEmail,
 				Password: TestUserPassword,

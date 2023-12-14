@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	ContextKey                = "logger"
-	EventFinishedSuccessfully = "event successfully finished"
+	ContextKey    = "logger"
+	EventFinished = "event successfully finished"
 )
 
 func Middleware(logger *zap.SugaredLogger) func(ctx *fiber.Ctx) error {
