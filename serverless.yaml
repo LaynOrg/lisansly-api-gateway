@@ -45,10 +45,10 @@ functions:
           path: /user/refreshToken/{refreshToken}
           cors: true
 
-  updateUser:
+  updateUserById:
     handler: bootstrap
     package:
-      artifact: build/updateUser/updateUser.zip
+      artifact: build/updateUserById/updateUserById.zip
     events:
       - http:
           method: PATCH
