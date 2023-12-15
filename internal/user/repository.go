@@ -82,7 +82,7 @@ func (r *repository) GetUserById(ctx context.Context, userId string) (*Document,
 		if statusCode != http.StatusOK {
 			return nil, &cerror.CustomError{
 				HttpStatusCode: cerrFromLambda.HttpStatusCode,
-				LogMessage:     "user-api return error",
+				LogMessage:     "user-service return error",
 				LogSeverity:    zap.ErrorLevel,
 			}
 		}
@@ -144,7 +144,7 @@ func (r *repository) Register(ctx context.Context, user *RegisterPayload) (*jwt_
 		if statusCode != http.StatusCreated {
 			return nil, &cerror.CustomError{
 				HttpStatusCode: cerrFromLambda.HttpStatusCode,
-				LogMessage:     "user-api return error",
+				LogMessage:     "user-service return error",
 				LogSeverity:    zap.ErrorLevel,
 			}
 		}
@@ -206,7 +206,7 @@ func (r *repository) Login(ctx context.Context, user *LoginPayload) (*jwt_genera
 		if statusCode != http.StatusOK {
 			return nil, &cerror.CustomError{
 				HttpStatusCode: cerrFromLambda.HttpStatusCode,
-				LogMessage:     "user-api return error",
+				LogMessage:     "user-service return error",
 				LogSeverity:    zap.ErrorLevel,
 			}
 		}
@@ -271,7 +271,7 @@ func (r *repository) GetAccessTokenViaRefreshToken(ctx context.Context, userId, 
 		if statusCode != http.StatusOK {
 			return "", &cerror.CustomError{
 				HttpStatusCode: cerrFromLambda.HttpStatusCode,
-				LogMessage:     "user-api return error",
+				LogMessage:     "user-service return error",
 				LogSeverity:    zap.ErrorLevel,
 			}
 		}
@@ -336,7 +336,7 @@ func (r *repository) UpdateUserById(
 		if statusCode != http.StatusOK {
 			return nil, &cerror.CustomError{
 				HttpStatusCode: cerrFromLambda.HttpStatusCode,
-				LogMessage:     "user-api return error",
+				LogMessage:     "user-service return error",
 				LogSeverity:    zap.ErrorLevel,
 			}
 		}

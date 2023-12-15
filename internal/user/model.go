@@ -9,17 +9,17 @@ const (
 
 type RegisterPayload struct {
 	Name     string `json:"name" validate:"required"`
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,gte=10"`
+	Email    string `json:"email" validate:"email,required"`
+	Password string `json:"password" validate:"gte=10,required"`
 }
 
 type LoginPayload struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,gte=10"`
+	Email    string `json:"email" validate:"email,required"`
+	Password string `json:"password" validate:"gte=10,required"`
 }
 
 type GetAccessTokenViaRefreshTokenPayload struct {
-	RefreshToken string `validate:"required,jwt"`
+	RefreshToken string `validate:"jwt,required"`
 }
 
 type GetUserByIdPayloadToUserAPI struct {
@@ -27,10 +27,10 @@ type GetUserByIdPayloadToUserAPI struct {
 }
 
 type UpdateUserByIdPayload struct {
-	Id       string `json:"userId,omitempty"`
+	Id       string `json:"id,omitempty"`
 	Name     string `json:"name,omitempty" validate:"required_without_all=Email Password"`
-	Email    string `json:"email,omitempty" validate:"required_without_all=Name Password,email"`
-	Password string `json:"password,omitempty" validate:"required_without_all=Name Email,gte=10"`
+	Email    string `json:"email,omitempty" validate:"email,required_without_all=Name Password"`
+	Password string `json:"password,omitempty" validate:"gte=10,required_without_all=Name Email"`
 }
 
 type Document struct {

@@ -231,7 +231,7 @@ func TestRepository_Register(t *testing.T) {
 		assert.Equal(t,
 			&cerror.CustomError{
 				HttpStatusCode: http.StatusInternalServerError,
-				LogMessage:     "user-api return error",
+				LogMessage:     "user-service return error",
 				LogSeverity:    zap.ErrorLevel,
 			},
 			cerr,

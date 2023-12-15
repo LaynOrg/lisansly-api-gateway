@@ -122,7 +122,7 @@ func TestService_VerifyAccessToken(t *testing.T) {
 			GetUserById(ctx, TestUserId).
 			Return(nil, &cerror.CustomError{
 				HttpStatusCode: fiber.StatusInternalServerError,
-				LogMessage:     "user-api error",
+				LogMessage:     "user-service error",
 				LogSeverity:    zapcore.ErrorLevel,
 			})
 
