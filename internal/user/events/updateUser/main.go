@@ -49,7 +49,7 @@ func main() {
 	h := user.NewHandler(service, userRepository)
 
 	srv := server.NewServer(log)
-	srv.Patch("/user", h.AuthenticationMiddleware, h.GetAccessTokenViaRefreshToken)
+	srv.Patch("/user", h.AuthenticationMiddleware, h.UpdateUserById)
 
 	lambdaAdapter := fiberadapter.New(srv)
 	lambda.Start(server.LambdaProxyHandler(lambdaAdapter))
