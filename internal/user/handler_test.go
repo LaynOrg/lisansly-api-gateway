@@ -760,6 +760,53 @@ func TestHandler_UpdateUserById(t *testing.T) {
 			assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
 			assert.Empty(t, tokens)
 		})
+
+		t.Run("at least one of user fields is full except for the userId", func(t *testing.T) {
+			TestJwtTokens := &jwt_generator.Tokens{
+				AccessToken:  "abcd.abcd.abcd",
+				RefreshToken: "abcd.abcd.abcd",
+			}
+
+			mockService := NewMockService(mockController)
+			mockService.
+				EXPECT().
+				VerifyAccessToken(gomock.Any(), TestToken).
+				Return(TestJwtClaims, nil)
+
+			mockRepository := NewMockRepository(mockController)
+			mockRepository.
+				EXPECT().
+				UpdateUserById(gomock.Any(), gomock.Any()).
+				Return(TestJwtTokens, nil)
+
+			h := NewHandler(mockService, mockRepository)
+
+			app := fiber.New()
+			app.Patch("/user", h.AuthenticationMiddleware, h.UpdateUserById)
+
+			reqBody, err := json.Marshal(&UpdateUserByIdPayload{
+				Name:     TestUserName,
+				Email:    "",
+				Password: "",
+			})
+
+			req := httptest.NewRequest(fiber.MethodPatch, "/user", bytes.NewReader(reqBody))
+			req.Header.Set(fiber.HeaderAuthorization, fmt.Sprintf("Bearer %s", TestToken))
+			req.Header.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
+
+			resp, err := app.Test(req)
+			require.NoError(t, err)
+
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+
+			var tokens *jwt_generator.Tokens
+			err = json.Unmarshal(body, &tokens)
+			require.NoError(t, err)
+
+			assert.Equal(t, fiber.StatusOK, resp.StatusCode)
+			assert.Equal(t, TestJwtTokens, tokens)
+		})
 	})
 
 	t.Run("when user repository return error return it", func(t *testing.T) {
