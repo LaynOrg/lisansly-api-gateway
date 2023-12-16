@@ -59,7 +59,7 @@ func TestService_VerifyAccessToken(t *testing.T) {
 				Name:      TestUserName,
 				Email:     TestUserEmail,
 				Password:  TestUserPassword,
-				Role:      PlanDefault,
+				Plan:      PlanDefault,
 				CreatedAt: time.Now().UTC(),
 			}, nil)
 

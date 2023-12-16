@@ -38,7 +38,7 @@ type Document struct {
 	Name      string    `json:"name"`
 	Email     string    `json:"email"`
 	Password  string    `json:"password"`
-	Role      string    `json:"role"`
+	Plan      string    `json:"plan"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt,omitempty"`
 	DeletedAt time.Time `json:"deletedAt,omitempty"`

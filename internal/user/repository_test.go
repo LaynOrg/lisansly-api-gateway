@@ -559,7 +559,7 @@ func TestRepository_GetUserById(t *testing.T) {
 			Name:      TestUserName,
 			Email:     TestUserEmail,
 			Password:  TestUserPassword,
-			Role:      PlanDefault,
+			Plan:      PlanDefault,
 			CreatedAt: now,
 		})
 		require.NoError(t, err)
@@ -597,7 +597,7 @@ func TestRepository_GetUserById(t *testing.T) {
 				Name:      TestUserName,
 				Email:     TestUserEmail,
 				Password:  TestUserPassword,
-				Role:      PlanDefault,
+				Plan:      PlanDefault,
 				CreatedAt: now,
 			},
 			user,
