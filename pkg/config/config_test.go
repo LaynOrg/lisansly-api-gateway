@@ -34,7 +34,7 @@ func TestReadConfig(t *testing.T) {
 		require.NoError(t, err)
 
 		err = os.Setenv(
-			EnvironmentVariableGetAccessTokenViaRefreshTokenFunctionName,
+			EnvironmentVariableGetAccessTokenByRefreshTokenFunctionName,
 			"getAccessTokenViaRefreshToken",
 		)
 		require.NoError(t, err)
@@ -128,7 +128,7 @@ func TestReadUserApiConfig(t *testing.T) {
 		require.NoError(t, err)
 
 		err = os.Setenv(
-			EnvironmentVariableGetAccessTokenViaRefreshTokenFunctionName,
+			EnvironmentVariableGetAccessTokenByRefreshTokenFunctionName,
 			"getAccessTokenViaRefreshToken",
 		)
 		require.NoError(t, err)
@@ -242,7 +242,7 @@ func TestReadUserApiConfig(t *testing.T) {
 		assert.Equal(t,
 			errors.Errorf(
 				EnvironmentVariableNotDefined,
-				EnvironmentVariableGetAccessTokenViaRefreshTokenFunctionName,
+				EnvironmentVariableGetAccessTokenByRefreshTokenFunctionName,
 			).Error(),
 			err.Error(),
 		)
@@ -271,7 +271,7 @@ func TestReadUserApiConfig(t *testing.T) {
 		require.NoError(t, err)
 
 		err = os.Setenv(
-			EnvironmentVariableGetAccessTokenViaRefreshTokenFunctionName,
+			EnvironmentVariableGetAccessTokenByRefreshTokenFunctionName,
 			"getAccessTokenViaRefreshToken",
 		)
 		require.NoError(t, err)
