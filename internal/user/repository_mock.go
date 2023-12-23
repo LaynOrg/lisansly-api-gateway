@@ -39,21 +39,6 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 	return m.recorder
 }
 
-// GetAccessTokenViaRefreshToken mocks base method.
-func (m *MockRepository) GetAccessTokenViaRefreshToken(ctx context.Context, userId, refreshToken string) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAccessTokenViaRefreshToken", ctx, userId, refreshToken)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetAccessTokenViaRefreshToken indicates an expected call of GetAccessTokenViaRefreshToken.
-func (mr *MockRepositoryMockRecorder) GetAccessTokenViaRefreshToken(ctx, userId, refreshToken any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccessTokenViaRefreshToken", reflect.TypeOf((*MockRepository)(nil).GetAccessTokenViaRefreshToken), ctx, userId, refreshToken)
-}
-
 // GetUserById mocks base method.
 func (m *MockRepository) GetUserById(ctx context.Context, userId string) (*Document, error) {
 	m.ctrl.T.Helper()
@@ -112,4 +97,19 @@ func (m *MockRepository) UpdateUserById(ctx context.Context, user *UpdateUserByI
 func (mr *MockRepositoryMockRecorder) UpdateUserById(ctx, user any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserById", reflect.TypeOf((*MockRepository)(nil).UpdateUserById), ctx, user)
+}
+
+// getAccessTokenByRefreshToken mocks base method.
+func (m *MockRepository) getAccessTokenByRefreshToken(ctx context.Context, userId, refreshToken string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "getAccessTokenByRefreshToken", ctx, userId, refreshToken)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// getAccessTokenByRefreshToken indicates an expected call of getAccessTokenByRefreshToken.
+func (mr *MockRepositoryMockRecorder) getAccessTokenByRefreshToken(ctx, userId, refreshToken any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getAccessTokenByRefreshToken", reflect.TypeOf((*MockRepository)(nil).getAccessTokenByRefreshToken), ctx, userId, refreshToken)
 }

@@ -51,7 +51,7 @@ func main() {
 	srv.Get(
 		"/user/refreshToken/:refreshToken",
 		handler.AuthenticationMiddleware,
-		handler.GetAccessTokenViaRefreshToken,
+		handler.GetAccessTokenByRefreshToken,
 	)
 
 	lambdaAdapter := fiberadapter.New(srv)

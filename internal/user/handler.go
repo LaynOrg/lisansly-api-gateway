@@ -14,7 +14,7 @@ type Handler interface {
 	AuthenticationMiddleware(ctx *fiber.Ctx) error
 	Register(ctx *fiber.Ctx) error
 	Login(ctx *fiber.Ctx) error
-	GetAccessTokenViaRefreshToken(ctx *fiber.Ctx) error
+	GetAccessTokenByRefreshToken(ctx *fiber.Ctx) error
 	UpdateUserById(ctx *fiber.Ctx) error
 }
 
@@ -134,7 +134,7 @@ func (h *handler) Login(fiberCtx *fiber.Ctx) error {
 	return fiberCtx.Status(fiber.StatusOK).JSON(tokens)
 }
 
-func (h *handler) GetAccessTokenViaRefreshToken(fiberCtx *fiber.Ctx) error {
+func (h *handler) GetAccessTokenByRefreshToken(fiberCtx *fiber.Ctx) error {
 	var err error
 
 	refreshToken := fiberCtx.Params("refreshToken")
@@ -147,7 +147,7 @@ func (h *handler) GetAccessTokenViaRefreshToken(fiberCtx *fiber.Ctx) error {
 		}
 	}
 
-	err = h.validate.Struct(&GetAccessTokenViaRefreshTokenPayload{
+	err = h.validate.Struct(&GetAccessTokenByRefreshTokenPayload{
 		RefreshToken: refreshToken,
 	})
 	if err != nil {
@@ -161,7 +161,7 @@ func (h *handler) GetAccessTokenViaRefreshToken(fiberCtx *fiber.Ctx) error {
 
 	requestCtx := fiberCtx.Context()
 	var accessToken string
-	accessToken, err = h.userRepository.GetAccessTokenViaRefreshToken(requestCtx, userId, refreshToken)
+	accessToken, err = h.userRepository.getAccessTokenByRefreshToken(requestCtx, userId, refreshToken)
 	if err != nil {
 		return err
 	}

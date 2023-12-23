@@ -35,7 +35,7 @@ func TestReadConfig(t *testing.T) {
 
 		err = os.Setenv(
 			EnvironmentVariableGetAccessTokenByRefreshTokenFunctionName,
-			"getAccessTokenViaRefreshToken",
+			"GetAccessTokenByRefreshToken",
 		)
 		require.NoError(t, err)
 
@@ -58,11 +58,11 @@ func TestReadConfig(t *testing.T) {
 		assert.Equal(t, &Config{
 			FunctionNames: &FunctionNames{
 				UserAPI: map[UserApiFunctionNames]string{
-					GetAccessTokenViaRefreshToken: "getAccessTokenViaRefreshToken",
-					Login:                         "login",
-					Register:                      "register",
-					UpdateUserById:                "updateUser",
-					GetUserById:                   "getUserById",
+					GetAccessTokenByRefreshToken: "GetAccessTokenByRefreshToken",
+					Login:                        "login",
+					Register:                     "register",
+					UpdateUserById:               "updateUser",
+					GetUserById:                  "getUserById",
 				},
 			},
 			Jwt: &JwtConfig{
@@ -129,7 +129,7 @@ func TestReadUserApiConfig(t *testing.T) {
 
 		err = os.Setenv(
 			EnvironmentVariableGetAccessTokenByRefreshTokenFunctionName,
-			"getAccessTokenViaRefreshToken",
+			"GetAccessTokenByRefreshToken",
 		)
 		require.NoError(t, err)
 
@@ -144,11 +144,11 @@ func TestReadUserApiConfig(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, map[UserApiFunctionNames]string{
-			GetAccessTokenViaRefreshToken: "getAccessTokenViaRefreshToken",
-			Login:                         "login",
-			Register:                      "register",
-			UpdateUserById:                "updateUser",
-			GetUserById:                   "getUserById",
+			GetAccessTokenByRefreshToken: "GetAccessTokenByRefreshToken",
+			Login:                        "login",
+			Register:                     "register",
+			UpdateUserById:               "updateUser",
+			GetUserById:                  "getUserById",
 		}, cfg)
 	})
 
@@ -215,7 +215,7 @@ func TestReadUserApiConfig(t *testing.T) {
 		assert.Empty(t, cfg)
 	})
 
-	t.Run("when getAccessTokenViaRefreshToken function name is empty should return error", func(t *testing.T) {
+	t.Run("when GetAccessTokenByRefreshToken function name is empty should return error", func(t *testing.T) {
 		var err error
 
 		err = os.Setenv(
@@ -272,7 +272,7 @@ func TestReadUserApiConfig(t *testing.T) {
 
 		err = os.Setenv(
 			EnvironmentVariableGetAccessTokenByRefreshTokenFunctionName,
-			"getAccessTokenViaRefreshToken",
+			"GetAccessTokenByRefreshToken",
 		)
 		require.NoError(t, err)
 

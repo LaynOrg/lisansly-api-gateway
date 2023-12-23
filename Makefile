@@ -4,14 +4,14 @@ get:
 
 .PHONY: build
 build:
-	env GOOS=linux GOARCH=arm64 go build -o build/getAccessTokenViaRefreshToken/bootstrap internal/user/events/getAccessTokenViaRefreshToken/main.go
+	env GOOS=linux GOARCH=arm64 go build -o build/getAccessTokenByRefreshToken/bootstrap internal/user/events/getAccessTokenByRefreshToken/main.go
 	env GOOS=linux GOARCH=arm64 go build -o build/login/bootstrap internal/user/events/login/main.go
 	env GOOS=linux GOARCH=arm64 go build -o build/register/bootstrap internal/user/events/register/main.go
 	env GOOS=linux GOARCH=arm64 go build -o build/updateUserById/bootstrap internal/user/events/updateUserById/main.go
 
 .PHONY: zip
 zip:
-	zip -j build/getAccessTokenViaRefreshToken/getAccessTokenViaRefreshToken.zip build/getAccessTokenViaRefreshToken/bootstrap
+	zip -j build/getAccessTokenByRefreshToken/getAccessTokenByRefreshToken.zip build/getAccessTokenByRefreshToken/bootstrap
 	zip -j build/login/login.zip build/login/bootstrap
 	zip -j build/register/register.zip build/register/bootstrap
 	zip -j build/updateUserById/updateUserById.zip build/updateUserById/bootstrap

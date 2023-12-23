@@ -50,8 +50,8 @@ func ReadUserApiConfig() (map[UserApiFunctionNames]string, error) {
 		return nil, fmt.Errorf(EnvironmentVariableNotDefined, EnvironmentVariableLoginFunctionName)
 	}
 
-	getAccessTokenViaRefreshTokenFunctionName := os.Getenv(EnvironmentVariableGetAccessTokenByRefreshTokenFunctionName)
-	if getAccessTokenViaRefreshTokenFunctionName == "" {
+	getAccessTokenByRefreshTokenFunctionName := os.Getenv(EnvironmentVariableGetAccessTokenByRefreshTokenFunctionName)
+	if getAccessTokenByRefreshTokenFunctionName == "" {
 		return nil, fmt.Errorf(EnvironmentVariableNotDefined, EnvironmentVariableGetAccessTokenByRefreshTokenFunctionName)
 	}
 
@@ -61,11 +61,11 @@ func ReadUserApiConfig() (map[UserApiFunctionNames]string, error) {
 	}
 
 	return map[UserApiFunctionNames]string{
-		GetUserById:                   getUserByIdFunctionName,
-		Register:                      registerFunctionName,
-		Login:                         loginFunctionName,
-		GetAccessTokenViaRefreshToken: getAccessTokenViaRefreshTokenFunctionName,
-		UpdateUserById:                updateUserByIdFunctionName,
+		GetUserById:                  getUserByIdFunctionName,
+		Register:                     registerFunctionName,
+		Login:                        loginFunctionName,
+		GetAccessTokenByRefreshToken: getAccessTokenByRefreshTokenFunctionName,
+		UpdateUserById:               updateUserByIdFunctionName,
 	}, nil
 }
 

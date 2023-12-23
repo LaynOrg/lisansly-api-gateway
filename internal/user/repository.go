@@ -21,7 +21,7 @@ type Repository interface {
 	Register(ctx context.Context, user *RegisterPayload) (*jwt_generator.Tokens, error)
 	Login(ctx context.Context, user *LoginPayload) (*jwt_generator.Tokens, error)
 	GetUserById(ctx context.Context, userId string) (*Document, error)
-	GetAccessTokenViaRefreshToken(ctx context.Context, userId, refreshToken string) (string, error)
+	getAccessTokenByRefreshToken(ctx context.Context, userId, refreshToken string) (string, error)
 	UpdateUserById(ctx context.Context, user *UpdateUserByIdPayload) (*jwt_generator.Tokens, error)
 }
 
@@ -225,7 +225,7 @@ func (r *repository) Login(ctx context.Context, user *LoginPayload) (*jwt_genera
 	return tokens, nil
 }
 
-func (r *repository) GetAccessTokenViaRefreshToken(ctx context.Context, userId, refreshToken string) (string, error) {
+func (r *repository) getAccessTokenByRefreshToken(ctx context.Context, userId, refreshToken string) (string, error) {
 	var err error
 
 	var requestBody []byte
@@ -241,7 +241,7 @@ func (r *repository) GetAccessTokenViaRefreshToken(ctx context.Context, userId, 
 		return "", cerr
 	}
 
-	lambdaFunctionName := r.config.FunctionNames.UserAPI[config.GetAccessTokenViaRefreshToken]
+	lambdaFunctionName := r.config.FunctionNames.UserAPI[config.GetAccessTokenByRefreshToken]
 	var invokeOutput *lambda.InvokeOutput
 	invokeOutput, err = r.lambdaClient.Invoke(ctx, &lambda.InvokeInput{
 		FunctionName:   aws.String(lambdaFunctionName),
@@ -250,7 +250,7 @@ func (r *repository) GetAccessTokenViaRefreshToken(ctx context.Context, userId, 
 	})
 	if err != nil {
 		cerr := cerror.ErrorFunctionInvoke
-		cerr.LogMessage = fmt.Sprintf(cerr.LogMessage, config.GetAccessTokenViaRefreshToken)
+		cerr.LogMessage = fmt.Sprintf(cerr.LogMessage, config.GetAccessTokenByRefreshToken)
 		cerr.LogFields = []zap.Field{
 			zap.Error(err),
 		}

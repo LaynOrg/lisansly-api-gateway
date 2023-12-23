@@ -18,7 +18,7 @@ type LoginPayload struct {
 	Password string `json:"password" validate:"required,gte=10"`
 }
 
-type GetAccessTokenViaRefreshTokenPayload struct {
+type GetAccessTokenByRefreshTokenPayload struct {
 	RefreshToken string `validate:"jwt,required"`
 }
 

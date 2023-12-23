@@ -35,10 +35,10 @@ functions:
           path: /register
           cors: true
 
-  getAccessTokenViaRefreshToken:
+  getAccessTokenByRefreshToken:
     handler: bootstrap
     package:
-      artifact: build/getAccessTokenViaRefreshToken/getAccessTokenViaRefreshToken.zip
+      artifact: build/getAccessTokenByRefreshToken/getAccessTokenByRefreshToken.zip
     events:
       - http:
           method: GET

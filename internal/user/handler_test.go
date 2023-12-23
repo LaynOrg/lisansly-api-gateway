@@ -478,7 +478,7 @@ func TestHandler_GetAccessTokenByRefreshToken(t *testing.T) {
 		mockservice.EXPECT().VerifyAccessToken(gomock.Any(), TestToken).Return(TestJwtClaims, nil)
 
 		mockUserRepository := NewMockRepository(mockController)
-		mockUserRepository.EXPECT().GetAccessTokenViaRefreshToken(gomock.Any(), TestUserId, TestToken).Return(TestToken, nil)
+		mockUserRepository.EXPECT().getAccessTokenByRefreshToken(gomock.Any(), TestUserId, TestToken).Return(TestToken, nil)
 
 		h := NewHandler(mockservice, mockUserRepository)
 
@@ -486,7 +486,7 @@ func TestHandler_GetAccessTokenByRefreshToken(t *testing.T) {
 		app.Get(
 			"/user/refreshToken/:refreshToken",
 			h.AuthenticationMiddleware,
-			h.GetAccessTokenViaRefreshToken,
+			h.GetAccessTokenByRefreshToken,
 		)
 
 		reqUrl := fmt.Sprintf("/user/refreshToken/%s", TestToken)
@@ -519,7 +519,7 @@ func TestHandler_GetAccessTokenByRefreshToken(t *testing.T) {
 		app.Get(
 			"/user/refreshToken/:refreshToken",
 			h.AuthenticationMiddleware,
-			h.GetAccessTokenViaRefreshToken,
+			h.GetAccessTokenByRefreshToken,
 		)
 
 		reqUrl := fmt.Sprintf("/user/refreshToken/%s", "invalid-token")
@@ -545,7 +545,7 @@ func TestHandler_GetAccessTokenByRefreshToken(t *testing.T) {
 		mockservice.EXPECT().VerifyAccessToken(gomock.Any(), TestToken).Return(TestJwtClaims, nil)
 
 		mockUserRepository := NewMockRepository(mockController)
-		mockUserRepository.EXPECT().GetAccessTokenViaRefreshToken(gomock.Any(), TestUserId, TestToken).Return(
+		mockUserRepository.EXPECT().getAccessTokenByRefreshToken(gomock.Any(), TestUserId, TestToken).Return(
 			"",
 			&cerror.CustomError{
 				HttpStatusCode: fiber.StatusUnauthorized,
@@ -561,7 +561,7 @@ func TestHandler_GetAccessTokenByRefreshToken(t *testing.T) {
 		app.Get(
 			"/user/refreshToken/:refreshToken",
 			h.AuthenticationMiddleware,
-			h.GetAccessTokenViaRefreshToken,
+			h.GetAccessTokenByRefreshToken,
 		)
 
 		reqUrl := fmt.Sprintf("/user/refreshToken/%s", TestToken)

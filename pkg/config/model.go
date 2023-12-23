@@ -3,11 +3,11 @@ package config
 type UserApiFunctionNames string
 
 const (
-	GetUserById                   UserApiFunctionNames = "GetUserById"
-	Register                      UserApiFunctionNames = "Register"
-	Login                         UserApiFunctionNames = "Login"
-	GetAccessTokenViaRefreshToken UserApiFunctionNames = "GetAccessTokenViaRefreshToken"
-	UpdateUserById                UserApiFunctionNames = "UpdateUserById"
+	GetUserById                  UserApiFunctionNames = "GetUserById"
+	Register                     UserApiFunctionNames = "Register"
+	Login                        UserApiFunctionNames = "Login"
+	GetAccessTokenByRefreshToken UserApiFunctionNames = "GetAccessTokenByRefreshToken"
+	UpdateUserById               UserApiFunctionNames = "UpdateUserById"
 )
 
 // #nosec

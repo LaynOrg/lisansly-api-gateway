@@ -25,15 +25,15 @@ import (
 )
 
 const (
-	TestUserName                                  = "lynicis"
-	TestUserEmail                                 = "test@test.com"
-	TestUserPassword                              = "Asdf12345_"
-	TestToken                                     = "abcd.abcd.abcd"
-	TestRegisterFunctionName                      = "register-func-name"
-	TestLoginFunctionName                         = "login-func-name"
-	TestGetUserByIdFunctionName                   = "get-user-by-id-func-name"
-	TestGetAccessTokenViaRefreshTokenFunctionName = "get-access-token-via-refresh-token"
-	TestUpdateUserByIdFunctionName                = "update-user-by-id-func-name"
+	TestUserName                                 = "lynicis"
+	TestUserEmail                                = "test@test.com"
+	TestUserPassword                             = "Asdf12345_"
+	TestToken                                    = "abcd.abcd.abcd"
+	TestRegisterFunctionName                     = "register-func-name"
+	TestLoginFunctionName                        = "login-func-name"
+	TestGetUserByIdFunctionName                  = "get-user-by-id-func-name"
+	TestGetAccessTokenByRefreshTokenFunctionName = "get-access-token-via-refresh-token"
+	TestUpdateUserByIdFunctionName               = "update-user-by-id-func-name"
 )
 
 var (
@@ -787,7 +787,7 @@ func TestRepository_GetUserById(t *testing.T) {
 	})
 }
 
-func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
+func TestRepository_getAccessTokenByRefreshToken(t *testing.T) {
 	mockController := gomock.NewController(t)
 	defer mockController.Finish()
 
@@ -808,7 +808,7 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 		mockLambdaClient.
 			EXPECT().
 			Invoke(ctx, &lambda.InvokeInput{
-				FunctionName:   aws.String(TestGetAccessTokenViaRefreshTokenFunctionName),
+				FunctionName:   aws.String(TestGetAccessTokenByRefreshTokenFunctionName),
 				InvocationType: types.InvocationTypeRequestResponse,
 				Payload:        requestBody,
 			}).
@@ -823,11 +823,11 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 		repository := NewRepository(mockLambdaClient, &config.Config{
 			FunctionNames: &config.FunctionNames{
 				UserAPI: map[config.UserApiFunctionNames]string{
-					config.GetAccessTokenViaRefreshToken: TestGetAccessTokenViaRefreshTokenFunctionName,
+					config.GetAccessTokenByRefreshToken: TestGetAccessTokenByRefreshTokenFunctionName,
 				},
 			},
 		})
-		accessToken, cerr := repository.GetAccessTokenViaRefreshToken(ctx, TestUserId, TestToken)
+		accessToken, cerr := repository.getAccessTokenByRefreshToken(ctx, TestUserId, TestToken)
 
 		assert.NoError(t, cerr)
 		assert.Equal(t, TestToken, accessToken)
@@ -845,7 +845,7 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 		mockLambdaClient.
 			EXPECT().
 			Invoke(ctx, &lambda.InvokeInput{
-				FunctionName:   aws.String(TestGetAccessTokenViaRefreshTokenFunctionName),
+				FunctionName:   aws.String(TestGetAccessTokenByRefreshTokenFunctionName),
 				InvocationType: types.InvocationTypeRequestResponse,
 				Payload:        requestBody,
 			}).
@@ -857,11 +857,11 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 		repository := NewRepository(mockLambdaClient, &config.Config{
 			FunctionNames: &config.FunctionNames{
 				UserAPI: map[config.UserApiFunctionNames]string{
-					config.GetAccessTokenViaRefreshToken: TestGetAccessTokenViaRefreshTokenFunctionName,
+					config.GetAccessTokenByRefreshToken: TestGetAccessTokenByRefreshTokenFunctionName,
 				},
 			},
 		})
-		accessToken, cerr := repository.GetAccessTokenViaRefreshToken(ctx, TestUserId, TestToken)
+		accessToken, cerr := repository.getAccessTokenByRefreshToken(ctx, TestUserId, TestToken)
 
 		assert.Error(t, cerr)
 		assert.Equal(t,
@@ -894,7 +894,7 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 		mockLambdaClient.
 			EXPECT().
 			Invoke(ctx, &lambda.InvokeInput{
-				FunctionName:   aws.String(TestGetAccessTokenViaRefreshTokenFunctionName),
+				FunctionName:   aws.String(TestGetAccessTokenByRefreshTokenFunctionName),
 				InvocationType: types.InvocationTypeRequestResponse,
 				Payload:        requestBody,
 			}).
@@ -910,11 +910,11 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 		repository := NewRepository(mockLambdaClient, &config.Config{
 			FunctionNames: &config.FunctionNames{
 				UserAPI: map[config.UserApiFunctionNames]string{
-					config.GetAccessTokenViaRefreshToken: TestGetAccessTokenViaRefreshTokenFunctionName,
+					config.GetAccessTokenByRefreshToken: TestGetAccessTokenByRefreshTokenFunctionName,
 				},
 			},
 		})
-		accessToken, cerr := repository.GetAccessTokenViaRefreshToken(ctx, TestUserId, TestToken)
+		accessToken, cerr := repository.getAccessTokenByRefreshToken(ctx, TestUserId, TestToken)
 
 		assert.Error(t, cerr)
 		assert.Equal(t,
@@ -947,7 +947,7 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 		mockLambdaClient.
 			EXPECT().
 			Invoke(ctx, &lambda.InvokeInput{
-				FunctionName:   aws.String(TestGetAccessTokenViaRefreshTokenFunctionName),
+				FunctionName:   aws.String(TestGetAccessTokenByRefreshTokenFunctionName),
 				InvocationType: types.InvocationTypeRequestResponse,
 				Payload:        requestBody,
 			}).
@@ -963,11 +963,11 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 		repository := NewRepository(mockLambdaClient, &config.Config{
 			FunctionNames: &config.FunctionNames{
 				UserAPI: map[config.UserApiFunctionNames]string{
-					config.GetAccessTokenViaRefreshToken: TestGetAccessTokenViaRefreshTokenFunctionName,
+					config.GetAccessTokenByRefreshToken: TestGetAccessTokenByRefreshTokenFunctionName,
 				},
 			},
 		})
-		accessToken, cerr := repository.GetAccessTokenViaRefreshToken(ctx, TestUserId, TestToken)
+		accessToken, cerr := repository.getAccessTokenByRefreshToken(ctx, TestUserId, TestToken)
 
 		assert.Error(t, cerr)
 		assert.Equal(t,
@@ -989,7 +989,7 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 		mockLambdaClient.
 			EXPECT().
 			Invoke(ctx, &lambda.InvokeInput{
-				FunctionName:   aws.String(TestGetAccessTokenViaRefreshTokenFunctionName),
+				FunctionName:   aws.String(TestGetAccessTokenByRefreshTokenFunctionName),
 				InvocationType: types.InvocationTypeRequestResponse,
 				Payload:        requestBody,
 			}).
@@ -1004,11 +1004,11 @@ func TestRepository_GetAccessTokenViaRefreshToken(t *testing.T) {
 		repository := NewRepository(mockLambdaClient, &config.Config{
 			FunctionNames: &config.FunctionNames{
 				UserAPI: map[config.UserApiFunctionNames]string{
-					config.GetAccessTokenViaRefreshToken: TestGetAccessTokenViaRefreshTokenFunctionName,
+					config.GetAccessTokenByRefreshToken: TestGetAccessTokenByRefreshTokenFunctionName,
 				},
 			},
 		})
-		accessToken, cerr := repository.GetAccessTokenViaRefreshToken(ctx, TestUserId, TestToken)
+		accessToken, cerr := repository.getAccessTokenByRefreshToken(ctx, TestUserId, TestToken)
 
 		assert.Error(t, cerr)
 		assert.Equal(t,
